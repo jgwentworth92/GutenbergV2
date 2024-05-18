@@ -31,6 +31,5 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest -v test_github_commits_hello_world.py
-          pytest -v test_github_commits_spoon_knife.py
-          pytest -v test_github_commits_invalid_repo.py
+          pytest .
+       
