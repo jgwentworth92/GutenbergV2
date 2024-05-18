@@ -1,0 +1,6 @@
+bytewax
+PyGithub
+icecream
+pytest
+pydantic
+pydantic_settings
