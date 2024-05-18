@@ -1,0 +1,30 @@
+FROM python:3.12-slim as base
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONFAULTHANDLER=1 \
+    PIP_NO_CACHE_DIR=off \
+    PIP_DEFAULT_TIMEOUT=100 \
+    PIP_DISABLE_PIP_VERSION_CHECK=on
+
+# Set up a workdir where we can put our dataflow
+WORKDIR /bytewax
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gcc libpq-dev build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+# Copy requirements file and install dependencies
+COPY ./requirements.txt /bytewax/requirements.txt
+RUN pip install --upgrade pip \
+    && pip install -r requirements.txt
+
+
+# Copy the rest of the application code
+COPY . .
+
+# Set PYTHONUNBUFFERED to any value to make Python flush stdout,
+# or you risk not seeing any output from your Python scripts.
+
+
+
+CMD ["python", "-m", "bytewax.run", "-r", "db_dir/", "-s", "300", "-b", "600", "-w4", "github-consumer"]

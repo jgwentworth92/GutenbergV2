@@ -1,0 +1,15 @@
+version: "3"
+services:
+  github_listener_and_topic_emitter:
+    build: ./kafkaGithubConsumer
+    container_name: github_listener
+    environment:
+      BROKERS: "${BROKERS}"
+      INPUT_TOPIC: "${INPUT_TOPIC}"
+      OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
+      GITHUB_TOKEN: "${GITHUB_TOKEN}"
+      CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
+      PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
+    volumes:
+      - ./github_listener/app:/bytewax/app  # Adjust to match the working directory
+      - ./db_dir:/bytewax/db_dir            # Adjust to match the working directory
