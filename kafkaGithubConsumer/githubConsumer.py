@@ -1,4 +1,3 @@
-
 from bytewax.dataflow import Dataflow
 import bytewax.operators as op
 from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage
@@ -15,7 +14,9 @@ from kafkaGithubConsumer.config_setting import get_config
 # Application setup
 config = get_config()
 
+# Kafka broker addresses
 brokers = [config.BROKERS]
+# Input and output Kafka topics
 input_topic = config.INPUT_TOPIC
 output_topic = config.OUTPUT_TOPIC
 
@@ -23,11 +24,13 @@ output_topic = config.OUTPUT_TOPIC
 consumer_config = config.CONSUMER_CONFIG
 producer_config = config.PRODUCER_CONFIG
 
-# Bytewax flow setup
+# Bytewax dataflow setup
 flow = Dataflow("github_commit_processing")
 
 
+# Define dataclasses for structured commit data
 class FileInfo(BaseModel):
+    """Class representing file information in a commit."""
     filename: str
     status: str
     additions: int
@@ -37,6 +40,7 @@ class FileInfo(BaseModel):
 
 
 class CommitData(BaseModel):
+    """Class representing commit data."""
     author: str
     message: str
     date: str
@@ -47,25 +51,40 @@ class CommitData(BaseModel):
 
 
 def fetch_and_emit_commits(repo_info):
-    """Fetch commits from GitHub and emit them one at a time, with error handling."""
+    """
+    Fetch commits from a GitHub repository and emit them one at a time.
+
+    Parameters:
+    repo_info (dict): Dictionary containing the owner and repository name.
+
+    Yields:
+    dict: Commit data or error information.
+    """
     owner = repo_info["owner"]
     repo_name = repo_info["repo_name"]
     token = config.GITHUB_TOKEN
     g = Github(token)
+
+    ic(f"Fetching repository {owner}/{repo_name}")
     try:
+        # Get the repository object from GitHub
         repo = g.get_repo(f"{owner}/{repo_name}")
     except Exception as e:
+        # Log and yield an error message if repository fetching fails
         error_message = {
             "error": "Failed to fetch repository",
             "details": str(e),
             "repo": f"{owner}/{repo_name}"
         }
+        ic(error_message)
         yield error_message
         return  # Stop further processing if repo fetching fails
 
     try:
+        # Fetch commits from the repository
         for commit in repo.get_commits():
             try:
+                # Extract commit details and yield the commit data
                 commit_data = CommitData(
                     author=commit.commit.author.name,
                     message=commit.commit.message,
@@ -82,25 +101,36 @@ def fetch_and_emit_commits(repo_info):
                         patch=getattr(file, 'patch', None)
                     ) for file in commit.files]
                 )
-                ic(f"Commit ID {commit_data.commit_id} for repo {commit_data.repo_name}")
+                ic(f"Processed commit ID {commit_data.commit_id} for repo {commit_data.repo_name}")
                 yield commit_data.dict()
             except Exception as e:
+                # Log and yield an error message if commit processing fails
                 error_message = {
                     "error": "Failed to process commit",
                     "details": str(e),
                     "commit_id": commit.sha
                 }
+                ic(error_message)
                 yield error_message
     except Exception as e:
+        # Log and yield an error message if fetching commits fails
         error_message = {
             "error": "Failed to fetch commits",
             "details": str(e),
             "repo": f"{owner}/{repo_name}"
         }
+        ic(error_message)
         yield error_message
 
 
 def inspect_output_topic(index, message):
+    """
+    Inspect messages from the output Kafka topic.
+
+    Parameters:
+    index (int): The index of the message.
+    message (KafkaError or bytes): The message from the Kafka topic.
+    """
     if isinstance(message, KafkaError):
         ic(f"Error: {message}")
     else:
@@ -130,4 +160,5 @@ kafka_output_input = op.input("kafka-output-input", flow,
                               KafkaSource(brokers=brokers, starting_offset=OFFSET_END, topics=[output_topic],
                                           add_config=consumer_config))
 
+# Inspect the output topic messages
 op.inspect("inspect_output_topic", kafka_output_input, inspect_output_topic)
