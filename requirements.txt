@@ -4,3 +4,4 @@ icecream
 pytest
 pydantic
 pydantic_settings
+confluent_kafka
