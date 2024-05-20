@@ -1,16 +1,16 @@
 import pytest
 from bytewax.dataflow import Dataflow
 import bytewax.operators as op
-from bytewax.testing import TestingSource, TestingSink,run_main
+from bytewax.testing import TestingSource, TestingSink, run_main
 import logging
-
-from kafkaGithubConsumer.githubConsumer import fetch_and_emit_commits
+from typing import Dict, Any
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
+# Sample Fixtures for Repo Information
 @pytest.fixture
 def sample_repo_info_1():
     return {"owner": "octocat", "repo_name": "Hello-World"}
@@ -26,66 +26,132 @@ def invalid_repo_info():
     return {"owner": "invalid", "repo_name": "invalid-repo"}
 
 
+# Fake Event Data Fixture
 @pytest.fixture
-def dataflow():
-    def _create_dataflow(repo_info):
-        logger.debug(f"Creating dataflow for repo: {repo_info['repo_name']}")
+def fake_event_data():
+    return {
+        "author": "The Octocat",
+        "message": "Create styles.css and updated README",
+        "date": "2014-02-04T22:38:36+00:00",
+        "url": "https://github.com/octocat/Spoon-Knife/commit/bb4cc8d3b2e14b3af5df699876dd4ff3acd00b7f",
+        "repo_name": "Goood_Event_Data",
+        "commit_id": "bb4cc8d3b2e14b3af5df699876dd4ff3acd00b7f",
+        "files": [
+            {
+                "filename": "README.md",
+                "status": "added",
+                "additions": 9,
+                "deletions": 0,
+                "changes": 9,
+                "patch": "@@ -0,0 +1,9 @@\n+### Well hello there!\n+\n+This repository is meant to provide an example for *forking* a repository on GitHub.\n+\n+Creating a *fork* is producing a personal copy of someone else's project. Forks act as a sort of bridge between the original repository and your personal copy. You can submit *Pull Requests* to help make other people's projects better by offering your changes up to the original project. Forking is at the core of social coding at GitHub.\n+\n+After forking this repository, you can make some changes to the project, and submit [a Pull Request](https://github.com/octocat/Spoon-Knife/pulls) as practice.\n+\n+For some more information on how to fork a repository, [check out our guide, \"Fork a Repo\"](https://help.github.com/articles/fork-a-repo). Thanks! :sparkling_heart:"
+            },
+            {
+                "filename": "styles.css",
+                "status": "added",
+                "additions": 17,
+                "deletions": 0,
+                "changes": 17,
+                "patch": "@@ -0,0 +1,17 @@\n+* {\n+  margin:0px;\n+  padding:0px;\n+}\n+\n+#octocat {\n+  display: block;\n+  width:384px;\n+  margin: 50px auto;\n+}\n+\n+p {\n+  display: block;\n+  width: 400px;\n+  margin: 50px auto;\n+  font: 30px Monaco,\"Courier New\",\"DejaVu Sans Mono\",\"Bitstream Vera Sans Mono\",monospace;\n+}"
+            }
+        ]
+    }
 
-        # Create the dataflow with a unique name based on the repository
-        flow = Dataflow(f"Github_Repo_Test_{repo_info['repo_name']}")
 
-        # Define the input source using the provided repository information
-        inp = op.input("inp", flow, TestingSource([repo_info]))
 
-        # Inspect the input for debugging purposes
+# Generalized Fixture to Create Dataflows
+@pytest.fixture
+def create_dataflow():
+    def _create_dataflow(processing_function, input_data):
+        logger.debug(f"Creating dataflow")
+
+        flow = Dataflow(f"Test_Dataflow")
+
+        inp = op.input("inp", flow, TestingSource([input_data]))
         op.inspect("check_inp", inp)
 
-        # Map the input to fetch and emit commits
-        commits = op.flat_map("fetch_and_emit_commits", inp, fetch_and_emit_commits)
+        # Ensure processing_function is applied with flat_map
+        processed = op.flat_map("process", inp, processing_function)
 
-        # Inspect the emitted commits for debugging purposes
-        op.inspect("check_commits", commits)
+        op.inspect("check_processed", processed)
 
-        # Capture the output using TestingSink
         captured_output = []
-        op.output("capture_output", commits, TestingSink(captured_output))
+        op.output("capture_output", processed, TestingSink(captured_output))
 
-        # Return the flow and the list to capture output
         return flow, captured_output
 
     return _create_dataflow
 
-
+# Generalized Fixture to Run Dataflows
 @pytest.fixture
-def run_test():
-    def _run_test(flow, captured_output):
-        """
-        Run the dataflow and perform assertions on the captured output.
-
-        Parameters:
-        flow: Dataflow instance to run.
-        captured_output: List to capture output data.
-        """
+def run_dataflow():
+    def _run_dataflow(flow):
         logger.info("Running dataflow")
 
-        # Run the dataflow
         run_main(flow)
 
-        # Log the captured output
-        for data in captured_output:
-            if "commit_id" in data:
-                logger.debug(f"Commit data: {data}")
-                assert "author" in data
-                assert "message" in data
-                assert "date" in data
-                assert "url" in data
-                assert "repo_name" in data
-                assert "commit_id" in data
-                assert "files" in data
-            elif "error" in data:
-                logger.error(f"Error data: {data}")
-                assert "error" in data
-                assert "details" in data
-                assert "repo" in data or "commit_id" in data
+    return _run_dataflow
+@pytest.fixture
+def error_event_data():
+    return {
+        "error": "Failed to fetch repository",
+        "details": "404 {\"message\": \"Not Found\", \"documentation_url\": \"https://docs.github.com/rest/repos/repos#get-a-repository\"}",
+        "repo": "jgwentworth92/Gutenberg-Ingestion-Pipeline"
+    }
 
-    return _run_test
+@pytest.fixture
+def malformed_event_data():
+    return {
+        "message": "Create styles.css and updated README",
+        "date": "2014-02-04T22:38:36+00:00",
+        "url": "https://github.com/octocat/Spoon-Knife/commit/bb4cc8d3b2e14b3af5df699876dd4ff3acd00b7f",
+        "repo_name": "Spoon-Knife",
+        "commit_id": "bb4cc8d3b2e14b3af5df699876dd4ff3acd00b7f",
+        "files": [
+            {
+                "filename": "README.md",
+                "status": "added",
+                "additions": 9,
+                "deletions": 0,
+                "changes": 9
+
+            },
+            {
+                "filename": "styles.css",
+                "status": "added",
+                "additions": 17,
+                "deletions": 0,
+                "changes": 17
+
+            }
+        ]
+    }
+
+
+@pytest.fixture
+def document_processing_error_event_data():
+    return {
+        "author": "The Octocat",
+        "message": "Create styles.css and updated README",
+        "date": "2014-02-04T22:38:36+00:00",
+        "url": "https://github.com/octocat/Spoon-Knife/commit/bb4cc8d3b2e14b3af5df699876dd4ff3acd00b7f",
+        "repo_name": "Spoon-Knife",
+        "commit_id": "bb4cc8d3b2e14b3af5df699876dd4ff3acd00b7f",
+        "files": [
+            {
+                "filename": "README.md",
+                "status": "added",
+                "additions": 9,
+                "deletions": 0,
+                "changes": 9
+                # Missing patch field
+            },
+            {
+                "filename": "styles.css",
+                "status": "added",
+                "additions": 17,
+                "deletions": 0,
+                "changes": 17
+                # Missing patch field
+            }
+        ]
+    }
