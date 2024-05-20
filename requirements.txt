@@ -1,7 +1,14 @@
 bytewax
+orjson
+pydantic
 PyGithub
 icecream
+confluent-kafka
+kafka-python-ng
+aiohttp==3.9.0b0
+pydantic-settings
 pytest
-pydantic
-pydantic_settings
-confluent_kafka
+langchain==0.1.14
+langchain-community==0.0.31
+langchain-core==0.1.40
+langchain-openai
