@@ -1,15 +1,88 @@
+import time
+
 import pytest
 from bytewax.dataflow import Dataflow
 import bytewax.operators as op
 from bytewax.testing import TestingSource, TestingSink, run_main
 import logging
 from typing import Dict, Any
+from confluent_kafka import Producer, Consumer, KafkaException
+from config.config_setting import config
+import subprocess
+import orjson
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
+# Kafka configuration for the test
+kafka_brokers = "localhost:9092"
+input_topic = config.INPUT_TOPIC
+output_topic = config.OUTPUT_TOPIC
+processed_topic = config.PROCESSED_TOPIC
+
+@pytest.fixture(scope="module", autouse=True)
+def setup_bytewax_dataflows():
+    # Start the Bytewax dataflows
+    github_commit_processing = subprocess.Popen(
+        ["python", "-m", "bytewax.run", "-w3", "dataflows.github_commit_processing"], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    commit_summary_service = subprocess.Popen(
+        ["python", "-m", "bytewax.run", "-w3", "dataflows.commit_summary_service"], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+
+    # Give some time for the services to start
+    time.sleep(10)
+
+    yield
+
+    # Terminate the Bytewax dataflows
+    github_commit_processing.terminate()
+    commit_summary_service.terminate()
+    github_commit_processing.wait()
+    commit_summary_service.wait()
+
+@pytest.fixture
+def produce_messages():
+    def _produce_messages(topic, messages):
+        producer_config = {
+            "bootstrap.servers": kafka_brokers,
+        }
+        producer = Producer(producer_config)
+
+        for message in messages:
+            producer.produce(topic, orjson.dumps(message).decode('utf-8'))
+
+        producer.flush()
+
+    return _produce_messages
+
+@pytest.fixture
+def consume_messages():
+    def _consume_messages(topic, num_messages, timeout=10):
+        consumer_config = {
+            "bootstrap.servers": kafka_brokers,
+            "group.id": "test-group",
+            "auto.offset.reset": "earliest"
+        }
+        consumer = Consumer(consumer_config)
+        consumer.subscribe([topic])
+
+        messages = []
+        start_time = time.time()
+        while len(messages) < num_messages and (time.time() - start_time) < timeout:
+            msg = consumer.poll(timeout=1.0)
+            if msg is None:
+                continue
+            if msg.error():
+                raise KafkaException(msg.error())
+            messages.append(orjson.loads(msg.value().decode('utf-8')))
+
+        consumer.close()
+        return messages
+
+    return _consume_messages
 # Sample Fixtures for Repo Information
 @pytest.fixture
 def sample_repo_info_1():
