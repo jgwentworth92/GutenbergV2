@@ -22,8 +22,10 @@ input_topic = config.INPUT_TOPIC
 output_topic = config.OUTPUT_TOPIC
 processed_topic = config.PROCESSED_TOPIC
 
+
 @pytest.fixture(scope="module", autouse=True)
 def setup_bytewax_dataflows():
+    logger.info("Starting Bytewax dataflows...")
     # Start the Bytewax dataflows
     github_commit_processing = subprocess.Popen(
         ["python", "-m", "bytewax.run", "-w3", "dataflows.github_commit_processing"], stdout=subprocess.PIPE,
@@ -34,14 +36,18 @@ def setup_bytewax_dataflows():
 
     # Give some time for the services to start
     time.sleep(10)
+    logger.info("Bytewax dataflows started.")
 
     yield
 
+    logger.info("Terminating Bytewax dataflows...")
     # Terminate the Bytewax dataflows
     github_commit_processing.terminate()
     commit_summary_service.terminate()
     github_commit_processing.wait()
     commit_summary_service.wait()
+    logger.info("Bytewax dataflows terminated.")
+
 
 @pytest.fixture
 def produce_messages():
@@ -51,12 +57,15 @@ def produce_messages():
         }
         producer = Producer(producer_config)
 
+        logger.info(f"Producing {len(messages)} messages to topic '{topic}'...")
         for message in messages:
             producer.produce(topic, orjson.dumps(message).decode('utf-8'))
 
         producer.flush()
+        logger.info("Messages produced.")
 
     return _produce_messages
+
 
 @pytest.fixture
 def consume_messages():
@@ -71,6 +80,7 @@ def consume_messages():
 
         messages = []
         start_time = time.time()
+        logger.info(f"Consuming messages from topic '{topic}'...")
         while len(messages) < num_messages and (time.time() - start_time) < timeout:
             msg = consumer.poll(timeout=1.0)
             if msg is None:
@@ -80,10 +90,10 @@ def consume_messages():
             messages.append(orjson.loads(msg.value().decode('utf-8')))
 
         consumer.close()
+        logger.info(f"Consumed {len(messages)} messages.")
         return messages
 
     return _consume_messages
-# Sample Fixtures for Repo Information
 @pytest.fixture
 def sample_repo_info_1():
     return {"owner": "octocat", "repo_name": "Hello-World"}
