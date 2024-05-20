@@ -12,6 +12,25 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      zookeeper:
+        image: wurstmeister/zookeeper:3.4.6
+        ports:
+          - 2181:2181
+      kafka:
+        image: wurstmeister/kafka:2.12-2.3.0
+        ports:
+          - 9092:9092
+        env:
+          KAFKA_ZOOKEEPER_CONNECT: localhost:2181
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+        options: >-
+          --network-alias kafka
+          --env KAFKA_ADVERTISED_HOST_NAME=localhost
+          --env KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,6 +47,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Wait for Kafka to be ready
+        run: |
+          # Wait for Kafka to start
+          while ! nc -z localhost 9092; do   
+            sleep 0.1 # wait for 1/10 of the second before check again
+          done
 
       - name: Run tests
         run: pytest .
