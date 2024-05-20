@@ -18,13 +18,11 @@ COPY ./requirements.txt /bytewax/requirements.txt
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
-
-# Copy the rest of the application code
 COPY . .
+# Copy the rest of the application code
 
 # Set PYTHONUNBUFFERED to any value to make Python flush stdout,
 # or you risk not seeing any output from your Python scripts.
 
 
 
-CMD ["python", "-m", "bytewax.run", "-r", "db_dir/", "-s", "300", "-b", "600", "-w4", "github-consumer"]
