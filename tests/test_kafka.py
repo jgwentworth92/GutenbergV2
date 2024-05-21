@@ -24,6 +24,7 @@ def test_kafka_integration(produce_messages, consume_messages):
     try:
         processed_messages = consume_messages(output_topic, num_messages=2)
         logger.info(f"Consumed {len(processed_messages)} messages from output topic.")
+        assert len(processed_messages) > 0, "No messages consumed from output topic"
         for msg in processed_messages:
             logger.info(f"Processed message: {msg}")
             assert "commit_id" in msg
@@ -41,6 +42,7 @@ def test_kafka_integration(produce_messages, consume_messages):
     try:
         final_messages = consume_messages(processed_topic, num_messages=2)
         logger.info(f"Consumed {len(final_messages)} messages from processed topic.")
+        assert len(final_messages) > 0, "No messages consumed from processed topic"
         for msg in final_messages:
             logger.info(f"Final processed message: {msg}")
             assert "page_content" in msg
@@ -50,6 +52,3 @@ def test_kafka_integration(produce_messages, consume_messages):
         assert False, str(e)
 
     logger.info("Kafka integration test completed successfully.")
-
-if __name__ == "__main__":
-    pytest.main()
