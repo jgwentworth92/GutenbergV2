@@ -18,6 +18,7 @@ jobs:
 
       - name: Set environment variables
         run: |
+          echo "GITHUB_TOKEN=${{ secrets.TOKEN_GITHUB }}" >> $GITHUB_ENV
           echo "BROKERS=${{ env.kafka_runner_address }}:9093" >> $GITHUB_ENV
           echo "INPUT_TOPIC=repos-topic" >> $GITHUB_ENV
           echo "OUTPUT_TOPIC=github-commits-out" >> $GITHUB_ENV
