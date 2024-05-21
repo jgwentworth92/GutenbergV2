@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 # Kafka configuration for the test
-kafka_brokers = "kafka:9092"
+kafka_brokers = "localhost:9092"
 input_topic = config.INPUT_TOPIC
 output_topic = config.OUTPUT_TOPIC
 processed_topic = config.PROCESSED_TOPIC
