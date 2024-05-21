@@ -23,11 +23,10 @@ jobs:
         image: confluentinc/cp-kafka:latest
         ports:
           - 9092:9092
-          - 9093:9093
         env:
           KAFKA_ZOOKEEPER_CONNECT: localhost:2181
           KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_HOST://localhost:29092
           KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
           KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
         options: >-
@@ -61,10 +60,11 @@ jobs:
 
       - name: Wait for Kafka to be ready
         run: |
-          # Wait for Kafka to start
+          echo "Waiting for Kafka to start..."
           while ! nc -z localhost 9092; do   
-            sleep 0.1 # wait for 1/10 of the second before check again
+            sleep 0.1
           done
+          echo "Kafka is up and running."
 
       - name: Run tests
         run: pytest .
