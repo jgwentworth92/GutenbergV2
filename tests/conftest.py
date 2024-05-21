@@ -7,17 +7,17 @@ from bytewax.testing import TestingSource, TestingSink, run_main
 import logging
 from typing import Dict, Any
 from confluent_kafka import Producer, Consumer, KafkaException
-from config.config_setting import config
+from config.config_setting import get_config
 import subprocess
 import orjson
-
+config=get_config()
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
 # Kafka configuration for the test
-kafka_brokers = "localhost:9092"
+kafka_brokers = config.BROKERS
 input_topic = config.INPUT_TOPIC
 output_topic = config.OUTPUT_TOPIC
 processed_topic = config.PROCESSED_TOPIC

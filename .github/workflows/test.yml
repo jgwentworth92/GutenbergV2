@@ -1,70 +1,41 @@
-name: Run Tests
+name: "Unit Testing"
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+on: [push, pull_request]
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      zookeeper:
-        image: confluentinc/cp-zookeeper:latest
-        ports:
-          - 2181:2181
-        options: >-
-          --env ZOOKEEPER_CLIENT_PORT=2181
-      kafka:
-        image: confluentinc/cp-kafka:latest
-        ports:
-          - 9092:9092
-        env:
-          KAFKA_ZOOKEEPER_CONNECT: localhost:2181
-          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_HOST://localhost:29092
-          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-          KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
-        options: >-
-          --network-alias kafka
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run Kafka KRaft Broker
+        uses: spicyparrot/kafka-kraft-action@v1.1.0
+        with:
+          kafka-version: "3.7.0"
+          kafka-topics: "repos-topic,1,1;github-commits-out,1,1;addtovectordb,1,1"
+
+      - name: Set environment variables
+        run: |
+          echo "BROKERS=${{ env.kafka_runner_address }}:9093" >> $GITHUB_ENV
+          echo "INPUT_TOPIC=repos-topic" >> $GITHUB_ENV
+          echo "OUTPUT_TOPIC=github-commits-out" >> $GITHUB_ENV
+          echo "CONSUMER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\",\"group.id\": \"your_unique_group_id\",\"auto.offset.reset\": \"earliest\",\"enable.auto.commit\": \"true\"}" >> $GITHUB_ENV
+          echo "PRODUCER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\"}" >> $GITHUB_ENV
+          echo "PROCESSED_TOPIC=addtovectordb" >> $GITHUB_ENV
+          echo "MODEL_PROVIDER=fake" >> $GITHUB_ENV
+          echo "TEMPLATE=${{ secrets.TEMPLATE }}" >> $GITHUB_ENV
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
 
-      - name: Set environment variables
-        run: |
-          echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
-          echo "BROKERS=localhost:9092" >> $GITHUB_ENV
-          echo "INPUT_TOPIC=repos-topic" >> $GITHUB_ENV
-          echo "OUTPUT_TOPIC=github-commits-out" >> $GITHUB_ENV
-          echo "CONSUMER_CONFIG={\"bootstrap.servers\": \"localhost:9092\",\"group.id\": \"your_unique_group_id\",\"auto.offset.reset\": \"earliest\",\"enable.auto.commit\": \"true\"}" >> $GITHUB_ENV
-          echo "PRODUCER_CONFIG={\"bootstrap.servers\": \"localhost:9092\"}" >> $GITHUB_ENV
-          echo "PROCESSED_TOPIC=addtovectordb" >> $GITHUB_ENV
-          echo "MODEL_PROVIDER=fake" >> $GITHUB_ENV
-          echo "TEMPLATE=${{ secrets.TEMPLATE }}" >> $GITHUB_ENV
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Wait for Kafka to be ready
-        run: |
-          echo "Waiting for Kafka to start..."
-          while ! nc -z localhost 9092; do   
-            sleep 0.1
-          done
-          echo "Kafka is up and running."
-
-      - name: Run tests
+      - name: 🧪 Run Unit Tests
         run: pytest .
