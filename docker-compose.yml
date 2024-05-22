@@ -12,7 +12,8 @@ services:
       PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
     volumes:
       - ./githubListener/app:/bytewax/app
-    command: ["python", "-m", "bytewax.run", "-w4", "dataflows/github_commit_processing"]
+      - ./recovery/github_listener:/bytewax/recovery/github_listener
+    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/github_listener", "-s", "300", "-b", "600", "-w4", "dataflows/github_commit_processing"]
 
   commit_summary_service:
     build: .
@@ -27,5 +28,34 @@ services:
       TEMPLATE: "${TEMPLATE}"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
     volumes:
-      - ./commit_summary_service/app:/bytewax/app  # Adjust to match the working directory
-    command: ["python", "-m", "bytewax.run", "-w4", "dataflows/commit_summary_service"]
+      - ./commit_summary_service/app:/bytewax/app
+      - ./recovery/commit_summary_service:/bytewax/recovery/commit_summary_service
+    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/commit_summary_service", "-s", "300", "-b", "600", "-w4", "dataflows/commit_summary_service"]
+
+  qdrant:
+    image: qdrant/qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-storage:/qdrant/storage:z
+
+  add_qdrant_service:
+    build: .
+    container_name: add_qdrant_service
+    environment:
+      BROKERS: "${BROKERS}"
+      OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
+      GITHUB_TOKEN: "${GITHUB_TOKEN}"
+      PROCESSED_TOPIC: "${PROCESSED_TOPIC}"
+      CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
+      PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
+      TEMPLATE: "${TEMPLATE}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+    volumes:
+      - ./add_qdrant_service/app:/bytewax/app
+      - ./recovery/add_qdrant_service:/bytewax/recovery/add_qdrant_service
+    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/add_qdrant_service", "-s", "300", "-b", "600", "-w4", "dataflows/add_qdrant_service"]
+
+volumes:
+  qdrant-storage:
