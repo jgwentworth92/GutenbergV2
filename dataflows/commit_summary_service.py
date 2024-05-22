@@ -6,6 +6,7 @@ from config.config_setting import config
 from services.message_processing_service import process_message
 from utils.kafka_utils import inspect_output_topic
 import orjson
+from confluent_kafka import OFFSET_STORED
 
 # Application setup
 brokers = [config.BROKERS]
@@ -19,7 +20,7 @@ flow = Dataflow("commit_summary_service")
 
 # Create KafkaSource for consuming messages from Kafka
 kafka_input = op.input("kafka-in", flow,
-                       KafkaSource(brokers=brokers, starting_offset=OFFSET_END, topics=[input_topic],
+                       KafkaSource(brokers=brokers, topics=[input_topic],
                                    add_config=consumer_config))
 
 # Process each message
@@ -37,7 +38,7 @@ op.output("kafka-output", kafka_messages, KafkaSink(brokers=brokers, topic=outpu
 
 # Input from Kafka to inspect output topic messages
 kafka_output_input = op.input("kafka-output-input", flow,
-                              KafkaSource(brokers=brokers, starting_offset=OFFSET_END, topics=[output_topic],
+                              KafkaSource(brokers=brokers, topics=[output_topic],
                                           add_config=consumer_config))
 
 # Inspect the output topic messages
