@@ -13,16 +13,18 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc libpq-dev build-essential \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Create recovery directories for each service
+RUN mkdir -p /bytewax/recovery/github_listener /bytewax/recovery/commit_summary_service
+
 # Copy requirements file and install dependencies
 COPY ./requirements.txt /bytewax/requirements.txt
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
-COPY . .
 # Copy the rest of the application code
+COPY . .
 
-# Set PYTHONUNBUFFERED to any value to make Python flush stdout,
-# or you risk not seeing any output from your Python scripts.
+# Initialize Bytewax recovery partitions
 
-
-
+# Set PYTHONUNBUFFERED to any value to make Python flush stdout
