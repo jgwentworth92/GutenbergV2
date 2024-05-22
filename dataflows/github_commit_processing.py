@@ -13,13 +13,14 @@ input_topic = config.INPUT_TOPIC
 output_topic = config.OUTPUT_TOPIC
 consumer_config = config.CONSUMER_CONFIG
 producer_config = config.PRODUCER_CONFIG
+from confluent_kafka import OFFSET_STORED
 
 # Bytewax dataflow setup
 flow = Dataflow("github_commit_processing")
 
 # Input from Kafka topic
 kafka_input = op.input("kafka-in", flow,
-                       KafkaSource(brokers=brokers, starting_offset=OFFSET_END, topics=[input_topic],
+                       KafkaSource(brokers=brokers,  topics=[input_topic],
                                    add_config=consumer_config))
 
 # Fetch and emit each commit individually
@@ -37,7 +38,7 @@ op.output("kafka-output", kafka_messages, KafkaSink(brokers=brokers, topic=outpu
 
 # Input from Kafka, deserialize each message
 kafka_output_input = op.input("kafka-output-input", flow,
-                              KafkaSource(brokers=brokers, starting_offset=OFFSET_END, topics=[output_topic],
+                              KafkaSource(brokers=brokers,  topics=[output_topic],
                                           add_config=consumer_config))
 
 # Inspect the output topic messages
