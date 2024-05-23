@@ -28,3 +28,4 @@ COPY . .
 # Initialize Bytewax recovery partitions
 
 # Set PYTHONUNBUFFERED to any value to make Python flush stdout
+CMD ["python", "main.py"]
