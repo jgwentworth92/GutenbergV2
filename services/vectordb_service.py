@@ -1,4 +1,4 @@
-import logging
+
 from typing import Generator, Dict, Any
 
 from icecream import ic
@@ -7,7 +7,10 @@ from langchain_openai import OpenAIEmbeddings
 
 from config.config_setting import config
 from utils.get_qdrant import get_qdrant_vector_store
+from utils.setup_logging import get_logger, setup_logging
 
+setup_logging()
+logging = get_logger(__name__)
 
 def process_message_to_vectordb(message: Dict[str, Any]) -> Generator[Dict[str, Any], None, None]:
     ic(message)

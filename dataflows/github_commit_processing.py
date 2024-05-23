@@ -42,4 +42,3 @@ kafka_output_input = op.input("kafka-output-input", flow,
                                           add_config=consumer_config))
 
 # Inspect the output topic messages
-op.inspect("inspect_output_topic", kafka_output_input, inspect_output_topic)

@@ -4,8 +4,10 @@ from langchain_core.documents import Document
 from icecream import ic
 from config.config_setting import config
 from utils.model_utils import setup_chat_model
+from utils.setup_logging import get_logger, setup_logging
 
-
+setup_logging()
+logger = get_logger(__name__)
 def create_documents(event_data: Dict[str, Any]) -> List[Document]:
     documents = []
     for file in event_data['files']:
@@ -36,7 +38,7 @@ def create_document(file: Dict[str, Any], event_data: Dict[str, Any]) -> Documen
 
 def process_message(message: Dict[str, Any]) -> Generator[Dict[str, Any], None, None]:
     if "error" in message:
-        ic(f"Error in message: {message}")
+        logger.error(f"Error in message: {message}")
         return
 
     event_data = message
@@ -52,16 +54,14 @@ def process_message(message: Dict[str, Any]) -> Generator[Dict[str, Any], None, 
                        "metadata": doc.metadata}
                 yield {"page_content": updated_doc.page_content,
                        "metadata": updated_doc.metadata}
-                ic(updated_doc.page_content)
-                ic("___________________ summary content end___________")
-                ic(f"metadata of commit {doc.metadata}")
+                logger.info(f"metadata of commit {doc.metadata}")
             except Exception as e:
                 error_message = {
                     "error": "Failed to process document",
                     "details": str(e),
                     "document_metadata": doc.metadata
                 }
-                ic(error_message)
+                logger.error(error_message)
                 yield error_message
     except Exception as e:
         error_message = {
@@ -69,5 +69,5 @@ def process_message(message: Dict[str, Any]) -> Generator[Dict[str, Any], None, 
             "details": str(e),
             "event_data": event_data
         }
-        ic(error_message)
+        logger.error(error_message)
         yield error_message

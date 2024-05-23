@@ -3,13 +3,17 @@ from models.commit import CommitData, FileInfo
 from config.config_setting import config
 from icecream import ic
 
+from utils.setup_logging import setup_logging, get_logger
+
+setup_logging()
+logger = get_logger(__name__)
 def fetch_and_emit_commits(repo_info):
     owner = repo_info["owner"]
     repo_name = repo_info["repo_name"]
     token = config.GITHUB_TOKEN
     g = Github(auth=Auth.Token(token))
 
-    ic(f"Fetching repository {owner}/{repo_name}")
+    logger.info(f"Fetching repository {owner}/{repo_name}")
     try:
         repo = g.get_repo(f"{owner}/{repo_name}")
     except Exception as e:
@@ -18,7 +22,7 @@ def fetch_and_emit_commits(repo_info):
             "details": str(e),
             "repo": f"{owner}/{repo_name}"
         }
-        ic(error_message)
+        logger.error(error_message)
         yield error_message
         return
 
@@ -41,7 +45,7 @@ def fetch_and_emit_commits(repo_info):
                         patch=getattr(file, 'patch', None)
                     ) for file in commit.files]
                 )
-                ic(f"Processed commit ID {commit_data.commit_id} for repo {commit_data.repo_name}")
+                logger.info(f"Processed commit ID {commit_data.commit_id} for repo {commit_data.repo_name}")
                 yield commit_data.model_dump()
             except Exception as e:
                 error_message = {
@@ -49,7 +53,7 @@ def fetch_and_emit_commits(repo_info):
                     "details": str(e),
                     "commit_id": commit.sha
                 }
-                ic(error_message)
+                logger.error(error_message)
                 yield error_message
     except Exception as e:
         error_message = {
@@ -57,5 +61,5 @@ def fetch_and_emit_commits(repo_info):
             "details": str(e),
             "repo": f"{owner}/{repo_name}"
         }
-        ic(error_message)
+        logger.error(error_message)
         yield error_message
