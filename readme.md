@@ -1,7 +1,4 @@
-### Updated README with VectorDB Service
-
-```markdown
-# Kafka Consumer with Vector Database Additions
+# Gutenberg
 
 This project is a Kafka consumer application that processes GitHub commit data, generates summaries using a chat model, and stores the results in a vector database. The application is built using Bytewax for data processing and Kafka for message streaming.
 
@@ -28,36 +25,36 @@ This project is a Kafka consumer application that processes GitHub commit data, 
 
 ## Project Structure
 
-```
+
+ ```
 my_project/
 ├── config/
-│   ├── __init__.py
-│   ├── config_setting.py
+│ ├── init.py
+│ ├── config_setting.py
 ├── models/
-│   ├── __init__.py
-│   ├── commit.py
-├── services/
-│   ├── __init__.py
-│   ├── github_service.py
-│   ├── message_processing_service.py
-│   ├── vectordb_service.py
+│ ├── init.py
+│ ├── commit.py
+├── services/a
+│ ├── init.py
+│ ├── github_service.py
+│ ├── message_processing_service.py
+│ ├── vectordb_service.py
 ├── utils/
-│   ├── __init__.py
-│   ├── kafka_utils.py
-│   ├── model_utils.py
-│   ├── get_qdrant.py
-│   ├── setup_logging.py
+│ ├── init.py
+│ ├── kafka_utils.py
+│ ├── model_utils.py
+│ ├── get_qdrant.py
+│ ├── setup_logging.py
 ├── dataflows/
-│   ├── __init__.py
-│   ├── github_commit_processing.py
-│   ├── commit_summary_service.py
-│   ├── add_qdrant_service.py
+│ ├── init.py
+│ ├── github_commit_processing.py
+│ ├── commit_summary_service.py
+│ ├── add_qdrant_service.py
 ├── tests/
-│   ├── __init__.py
-│   ├── test_github_service.py
-│   ├── test_message_processing_service.py
-│   ├── test_dataflows.py
-├── main.py
+│ ├── init.py
+│ ├── test_github_service.py
+│ ├── test_message_processing_service.py
+│ ├── test_dataflows.py
 └── requirements.txt
 ```
 
