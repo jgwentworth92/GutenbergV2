@@ -1,6 +1,11 @@
 # Gutenberg
 
-This project is a Kafka consumer application that processes GitHub commit data, generates summaries using a chat model, and stores the results in a vector database. The application is built using Bytewax for data processing and Kafka for message streaming.
+---
+
+The project aims to develop an automated system capable of grading GitHub repositories and transforming various data types into actionable insights. The system leverages modern stream processing frameworks, microservices, and local large language models (LLMs) to ensure scalability, efficiency, and cost-effectiveness.
+
+---
+
 
 ## Table of Contents
 
@@ -14,6 +19,9 @@ This project is a Kafka consumer application that processes GitHub commit data, 
   - [Running the Dataflows](#running-the-dataflows)
   - [Creating Recovery Partitions](#creating-recovery-partitions)
   - [Testing](#testing)
+  - [Additional Services](#additional-services)
+    - [Kafka UI](#kafka-ui)
+    - [Qdrant Web UI](#qdrant-web-ui)
 
 ## Features
 
@@ -22,39 +30,42 @@ This project is a Kafka consumer application that processes GitHub commit data, 
 - Store results in a vector database
 - Kafka integration for message streaming
 - Configurable to use different chat models (OpenAI, Fake model)
+- Kafka Kraft instance for broker management
+- Kafka UI for cluster management
+- REST Proxy for interacting with Kafka topics via REST API
+- Schema Registry for managing Kafka message schemas
 
 ## Project Structure
 
-
- ```
+```
 my_project/
 ├── config/
-│ ├── init.py
-│ ├── config_setting.py
+│   ├── __init__.py
+│   ├── config_setting.py
 ├── models/
-│ ├── init.py
-│ ├── commit.py
-├── services/a
-│ ├── init.py
-│ ├── github_service.py
-│ ├── message_processing_service.py
-│ ├── vectordb_service.py
+│   ├── __init__.py
+│   ├── commit.py
+├── services/
+│   ├── __init__.py
+│   ├── github_service.py
+│   ├── message_processing_service.py
+│   ├── vectordb_service.py
 ├── utils/
-│ ├── init.py
-│ ├── kafka_utils.py
-│ ├── model_utils.py
-│ ├── get_qdrant.py
-│ ├── setup_logging.py
+│   ├── __init__.py
+│   ├── kafka_utils.py
+│   ├── model_utils.py
+│   ├── get_qdrant.py
+│   ├── setup_logging.py
 ├── dataflows/
-│ ├── init.py
-│ ├── github_commit_processing.py
-│ ├── commit_summary_service.py
-│ ├── add_qdrant_service.py
+│   ├── __init__.py
+│   ├── github_commit_processing.py
+│   ├── commit_summary_service.py
+│   ├── add_qdrant_service.py
 ├── tests/
-│ ├── init.py
-│ ├── test_github_service.py
-│ ├── test_message_processing_service.py
-│ ├── test_dataflows.py
+│   ├── __init__.py
+│   ├── test_github_service.py
+│   ├── test_message_processing_service.py
+│   ├── test_dataflows.py
 └── requirements.txt
 ```
 
@@ -79,17 +90,15 @@ my_project/
 
 4. **Set up your environment variables:**
    Create a `.env` file in the root directory and add the required environment variables:
-   ```env
+    ```env
    GITHUB_TOKEN=your_github_token
-   BROKERS=your_kafka_broker
+   BROKERS="localhost:9092"
    INPUT_TOPIC=your_input_topic
    OUTPUT_TOPIC=your_output_topic
    PROCESSED_TOPIC=your_processed_topic
    VECTORDB_TOPIC_NAME=your_vectordb_topic_name
-   VECTOR_DB_HOST=your_vectordb_host
-   VECTOR_DB_PORT=your_vectordb_port
-   CONSUMER_CONFIG={"group.id": "your_group_id", "auto.offset.reset": "earliest"}
-   PRODUCER_CONFIG={"acks": "all"}
+   CONSUMER_CONFIG={"bootstrap.servers": "kafka_b:9094","auto.offset.reset": "earliest","group.id": "consumer_group","enable.auto.commit": "True"}
+   PRODUCER_CONFIG={"bootstrap.servers": "kafka_b:9094"}
    OPENAI_API_KEY=your_openai_api_key
    MODEL_PROVIDER=openai
    TEMPLATE=your_template_string
@@ -174,3 +183,12 @@ pytest .
 
 The tests are located in the `tests/` directory and cover the GitHub service, message processing service, and dataflows.
 
+## Additional Services
+
+### Kafka UI
+
+Kafka UI is included for cluster management, providing a web interface to manage and monitor Kafka clusters. Kafka UI can be accessed at [http://localhost:8080/](http://localhost:8080/). When adding a cluster, use `kafka_b` for the host and port `9094`.
+
+### Qdrant Web UI
+
+Qdrant Web UI is included to manage the vector database. Qdrant Web UI can be accessed at [http://localhost:6333/dashboard#/collections](http://localhost:6333/dashboard#/collections).
