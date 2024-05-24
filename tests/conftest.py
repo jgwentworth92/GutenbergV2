@@ -33,6 +33,9 @@ def setup_bytewax_dataflows():
     commit_summary_service = subprocess.Popen(
         ["python", "-m", "bytewax.run", "-w3", "dataflows.commit_summary_service"], stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
+    qdrant_service = subprocess.Popen(
+        ["python", "-m", "bytewax.run", "-w3", "dataflows.add_qdrant_service"], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
 
     # Give some time for the services to start
     time.sleep(10)
@@ -44,8 +47,10 @@ def setup_bytewax_dataflows():
     # Terminate the Bytewax dataflows
     github_commit_processing.terminate()
     commit_summary_service.terminate()
+    qdrant_service.terminate()
     github_commit_processing.wait()
     commit_summary_service.wait()
+    qdrant_service.wait()
     logger.info("Bytewax dataflows terminated.")
 
 

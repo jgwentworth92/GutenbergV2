@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 input_topic = config.INPUT_TOPIC
 output_topic = config.OUTPUT_TOPIC
 processed_topic = config.PROCESSED_TOPIC
-
+qdrant_output=config.VECTORDB_TOPIC_NAME
 def test_kafka_integration(produce_messages, consume_messages):
     # Produce test messages to the input topic
     test_messages = [
@@ -40,7 +40,7 @@ def test_kafka_integration(produce_messages, consume_messages):
 
     # Consume messages from the processed topic and verify
     try:
-        final_messages = consume_messages(processed_topic, num_messages=2)
+        final_messages = consume_messages(qdrant_output, num_messages=2)
         logger.info(f"Consumed {len(final_messages)} messages from processed topic.")
         assert len(final_messages) > 0, "No messages consumed from processed topic"
         for msg in final_messages:
