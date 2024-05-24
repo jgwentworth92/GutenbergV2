@@ -40,15 +40,26 @@ def test_kafka_integration(produce_messages, consume_messages):
 
     # Consume messages from the processed topic and verify
     try:
-        final_messages = consume_messages(qdrant_output, num_messages=2)
-        logger.info(f"Consumed {len(final_messages)} messages from processed topic.")
-        assert len(final_messages) > 0, "No messages consumed from processed topic"
-        for msg in final_messages:
+        processed_messages = consume_messages(processed_topic, num_messages=2)
+        logger.info(f"Consumed {len( processed_messages)} messages from processed topic.")
+        assert len( processed_messages) > 0, "No messages consumed from processed topic"
+        for msg in  processed_messages:
             logger.info(f"Final processed message: {msg}")
             assert "page_content" in msg
             assert "metadata" in msg
     except TimeoutError as e:
         logger.error(e)
         assert False, str(e)
-
+    try:
+        final_messages = consume_messages(qdrant_output, num_messages=2)
+        logger.info(f"Consumed {len(final_messages)} messages from qdrant output topic.")
+        assert len(final_messages) > 0, "No messages consumed from processed topic"
+        for msg in final_messages:
+            logger.info(f"Final processed message: {msg}")
+            assert "id" in msg
+            assert "collection_name" in msg
+            assert msg["collection_name"]=="The Octocat_Hello-World"
+    except TimeoutError as e:
+        logger.error(e)
+        assert False, str(e)
     logger.info("Kafka integration test completed successfully.")
