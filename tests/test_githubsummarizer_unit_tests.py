@@ -3,6 +3,7 @@ from icecream import ic
 
 from services.github_service import fetch_and_emit_commits
 from services.message_processing_service import process_message
+from services.vectordb_service import process_message_to_vectordb
 
 
 # Test for the github_listener_dataflow
@@ -87,3 +88,14 @@ def test_malformed_document_processing(create_dataflow, run_dataflow, document_p
             assert "details" in data
             assert "event_data" in data
             assert data['error'] == "Failed to process document"
+
+def test_qdrant(create_dataflow,  run_dataflow,qdrant_event_data):
+    flow, captured_output = create_dataflow(lambda msg: process_message_to_vectordb(msg),qdrant_event_data)
+    run_dataflow(flow)
+
+    ic(f"captured data:{captured_output}")
+    for data in captured_output:
+        ic(f"looped captured data {data}")
+        assert 'The Octocat_Hello-World' in data
+    assert len(captured_output) > 0
+

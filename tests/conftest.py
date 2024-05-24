@@ -10,11 +10,11 @@ from confluent_kafka import Producer, Consumer, KafkaException
 from config.config_setting import get_config
 import subprocess
 import orjson
-config=get_config()
+
+config = get_config()
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-
 
 # Kafka configuration for the test
 kafka_brokers = config.BROKERS
@@ -94,6 +94,8 @@ def consume_messages():
         return messages
 
     return _consume_messages
+
+
 @pytest.fixture
 def sample_repo_info_1():
     return {"owner": "octocat", "repo_name": "Hello-World"}
@@ -140,7 +142,6 @@ def fake_event_data():
     }
 
 
-
 # Generalized Fixture to Create Dataflows
 @pytest.fixture
 def create_dataflow():
@@ -164,6 +165,7 @@ def create_dataflow():
 
     return _create_dataflow
 
+
 # Generalized Fixture to Run Dataflows
 @pytest.fixture
 def run_dataflow():
@@ -173,6 +175,8 @@ def run_dataflow():
         run_main(flow)
 
     return _run_dataflow
+
+
 @pytest.fixture
 def error_event_data():
     return {
@@ -180,6 +184,7 @@ def error_event_data():
         "details": "404 {\"message\": \"Not Found\", \"documentation_url\": \"https://docs.github.com/rest/repos/repos#get-a-repository\"}",
         "repo": "jgwentworth92/Gutenberg-Ingestion-Pipeline"
     }
+
 
 @pytest.fixture
 def malformed_event_data():
@@ -237,4 +242,24 @@ def document_processing_error_event_data():
                 # Missing patch field
             }
         ]
+    }
+
+
+@pytest.fixture
+def qdrant_event_data():
+    return {
+        "page_content": "Filename: README, Status: modified, Files: @@ -1 +1 @@\n-Hello World!\n\\ No newline at end of file\n+Hello World!",
+        "metadata": {
+            "filename": "README",
+            "status": "modified",
+            "additions": 1,
+            "deletions": 1,
+            "changes": 2,
+            "author": "The Octocat",
+            "date": "2012-03-06T23:06:50+00:00",
+            "repo_name": "Hello-World",
+            "commit_url": "https://github.com/octocat/Hello-World/commit/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d",
+            "id": "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d",
+            "token_count": 20
+        }
     }
