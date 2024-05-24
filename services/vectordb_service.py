@@ -4,9 +4,12 @@ from typing import Generator, Dict, Any
 from icecream import ic
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
+from langchain_community.embeddings import FakeEmbeddings
+
 
 from config.config_setting import config
 from utils.get_qdrant import get_qdrant_vector_store
+from utils.model_utils import setup_embedding_model
 from utils.setup_logging import get_logger, setup_logging
 
 setup_logging()
@@ -46,7 +49,7 @@ def process_message_to_vectordb(message: Dict[str, Any]) -> Generator[Dict[str, 
     logging.info(f"Collection is called {collection_name}")
 
     try:
-        embed = OpenAIEmbeddings(openai_api_key=config.OPENAI_API_KEY)
+        embed = setup_embedding_model()
         vectordb = get_qdrant_vector_store(host=config.VECTOR_DB_HOST, port=config.VECTOR_DB_PORT,
                                            embeddings=embed, collection_name=collection_name)
         ids = vectordb.add_documents(documents)
