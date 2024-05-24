@@ -94,8 +94,10 @@ def test_qdrant(create_dataflow,  run_dataflow,qdrant_event_data):
     run_dataflow(flow)
 
     ic(f"captured data:{captured_output}")
-    for data in captured_output:
-        ic(f"looped captured data {data}")
-        assert 'The Octocat_Hello-World' in data
+    for msg in captured_output:
+        ic(f"looped captured data {msg}")
+        assert "id" in msg
+        assert "collection_name" in msg
+        assert msg["collection_name"] == "The Octocat_Hello-World"
     assert len(captured_output) > 0
 
