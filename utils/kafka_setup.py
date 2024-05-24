@@ -12,10 +12,7 @@ def create_topic(topic_name, partitions, replication_factor):
 
 
         PRODUCER_CONFIG = {
-            'bootstrap.servers': config.BROKERS,  # Replace with your Kafka broker address
-            "security.protocol": "SASL_SSL", "sasl.mechanisms": "PLAIN",
-            "sasl.username": config.PRODUCER_CONFIG['sasl.username'],
-            "sasl.password": config.PRODUCER_CONFIG['sasl.password']
+            'bootstrap.servers': config.BROKERS,
         }
         admin = AdminClient(PRODUCER_CONFIG)
         topic = NewTopic(topic=topic_name, num_partitions=partitions, replication_factor=replication_factor)
