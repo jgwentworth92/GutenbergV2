@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     APP_NAME: str = "Kafka Consumer with vector data base additions"
     TITLE: str = "Kafka Consumer Vector DB ingestors"
     DESCRIPTION: str = "Service consuming Kafka topics and adding to vector db."
+    VECTOR_DB_HOST: str = "qdrant"
+    VECTOR_DB_PORT: int = 6333
     GITHUB_TOKEN: Optional[str]
     BROKERS: Optional[str] = None
     INPUT_TOPIC: Optional[str] = None
@@ -19,7 +21,7 @@ class Settings(BaseSettings):
     TEMPLATE: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
     PROCESSED_TOPIC: Optional[str] = None
-
+    VECTORDB_TOPIC_NAME:Optional[str] = "QdrantOutput"
     model_config = ConfigDict(env_file=".env", env_file_encoding='utf-8')
 
     @classmethod
