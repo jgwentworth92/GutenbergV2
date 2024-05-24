@@ -53,7 +53,7 @@ def process_message_to_vectordb(message: Dict[str, Any]) -> Generator[Dict[str, 
         vectordb = get_qdrant_vector_store(host=config.VECTOR_DB_HOST, port=config.VECTOR_DB_PORT,
                                            embeddings=embed, collection_name=collection_name)
         ids = vectordb.add_documents(documents)
-        result_message = {collection_name: ids}
+        result_message = {"collection_name":collection_name,"id":ids}
         logging.info(f"Processed {len(ids)} documents into vectordb collection")
         yield result_message
     except Exception as e:
