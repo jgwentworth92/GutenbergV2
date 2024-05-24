@@ -1,0 +1,11 @@
+auth:
+  type: DISABLED
+kafka:
+  clusters:
+  - bootstrapServers: kafka_b:9094
+    name: github listner
+    properties: {}
+    readOnly: false
+rbac:
+  roles: []
+webclient: {}
