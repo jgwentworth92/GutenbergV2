@@ -9,10 +9,10 @@ def main():
         "recovery/add_qdrant_service": 4
     }
     config=get_config()
-    create_topic(config.INPUT_TOPIC, 4, 3)
-    create_topic(config.OUTPUT_TOPIC, 4, 3)
-    create_topic(config.PROCESSED_TOPIC, 4, 3)
-    create_topic(config.VECTORDB_TOPIC_NAME, 4, 3)
+    create_topic(config.INPUT_TOPIC, 2, 1)
+    create_topic(config.OUTPUT_TOPIC, 2, 1)
+    create_topic(config.PROCESSED_TOPIC, 2, 1)
+    create_topic(config.VECTORDB_TOPIC_NAME, 2, 1)
     for directory, partitions in recovery_directories.items():
         run_recovery_command(directory, partitions)
 
