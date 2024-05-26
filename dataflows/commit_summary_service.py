@@ -2,6 +2,8 @@ from bytewax.dataflow import Dataflow
 import bytewax.operators as op
 from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage
 from confluent_kafka import OFFSET_END
+from icecream import ic
+
 from config.config_setting import config
 from services.message_processing_service import process_message
 from utils.kafka_utils import inspect_output_topic
@@ -17,10 +19,11 @@ producer_config = config.PRODUCER_CONFIG
 
 # Bytewax dataflow setup
 flow = Dataflow("commit_summary_service")
+ic(f"the stored offset is {OFFSET_STORED}")
 
 # Create KafkaSource for consuming messages from Kafka
 kafka_input = op.input("kafka-in", flow,
-                       KafkaSource(brokers=brokers, topics=[input_topic],
+                       KafkaSource(brokers=brokers, topics=[input_topic],starting_offset=OFFSET_STORED,
                                    add_config=consumer_config))
 
 # Process each message
@@ -34,11 +37,11 @@ serialized_messages = op.map("serialize_messages", processed_messages, orjson.du
 kafka_messages = op.map("create_kafka_messages", serialized_messages, lambda x: KafkaSinkMessage(None, x))
 
 # Output serialized messages to Kafka
-op.output("kafka-output", kafka_messages, KafkaSink(brokers=brokers, topic=output_topic, add_config=producer_config))
+op.output("kafka-output", kafka_messages, KafkaSink(brokers=brokers, topic=output_topic))
 
 # Input from Kafka to inspect output topic messages
 kafka_output_input = op.input("kafka-output-input", flow,
                               KafkaSource(brokers=brokers, topics=[output_topic],
-                                          add_config=consumer_config))
+                                          add_config=consumer_config,starting_offset=OFFSET_STORED))
 
 # Inspect the output topic messages

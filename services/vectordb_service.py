@@ -16,7 +16,7 @@ setup_logging()
 logging = get_logger(__name__)
 
 def process_message_to_vectordb(message: Dict[str, Any]) -> Generator[Dict[str, Any], None, None]:
-    ic(message)
+
 
     if "error" in message:
         logging.error(f"Error in message: {message}")
@@ -40,11 +40,9 @@ def process_message_to_vectordb(message: Dict[str, Any]) -> Generator[Dict[str, 
         yield {"error": "No valid documents found", "details": message}
         return
 
-    for doc in documents:
-        logging.info(f"metadata of commit {doc.metadata}")
-        logging.info(f"page content of commit {doc.page_content}")
 
-    # Determine collection name dynamically from document metadata
+
+
     collection_name = documents[0].metadata.get('author') + "_" + str(documents[0].metadata.get('repo_name'))
     logging.info(f"Collection is called {collection_name}")
 

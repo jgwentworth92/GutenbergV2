@@ -44,11 +44,12 @@ flow = Dataflow("add_to_vector_db_service")
 
 
 # Create KafkaSource for consuming messages from Kafka
+ic(f"the stored offset is {OFFSET_STORED}")
 
 # Create KafkaSource for consuming messages from Kafka
 kafka_input = op.input("kafka-in", flow,
-                       KafkaSource(brokers=brokers, topics=[input_topic],
-                                   add_config=consumer_config, starting_offset=OFFSET_END))
+                       KafkaSource(brokers=brokers, topics=[input_topic],starting_offset=OFFSET_STORED,
+                                   add_config=consumer_config))
 
 # Process each message and add to vector db
 processed_messages = op.flat_map("process_message_to_vectordb", kafka_input,
@@ -65,7 +66,7 @@ op.output("kafka-output", kafka_messages, KafkaSink(brokers=brokers, topic=outpu
 
 # Input from Kafka to inspect output topic messages
 kafka_output_input = op.input("kafka-output-input", flow,
-                              KafkaSource(brokers=brokers, topics=[output_topic],
+                              KafkaSource(brokers=brokers, topics=[output_topic],starting_offset=OFFSET_STORED,
                                           add_config=consumer_config))
 
 # Inspect the output topic messages
