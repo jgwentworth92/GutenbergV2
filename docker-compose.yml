@@ -15,7 +15,7 @@ services:
       PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
     volumes:
       - ./recovery/github_listener:/bytewax/recovery/github_listener
-    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/github_listener", "-s", "300", "-b", "600", "-w4", "dataflows/github_commit_processing"]
+    command: ["python", "-m", "bytewax.run", "-w4", "dataflows/github_commit_processing"]
 
   commit_summary_service:
     build: .
@@ -34,7 +34,7 @@ services:
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
     volumes:
       - ./recovery/commit_summary_service:/bytewax/recovery/commit_summary_service
-    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/commit_summary_service", "-s", "300", "-b", "600", "-w4", "dataflows/commit_summary_service"]
+    command: ["python", "-m", "bytewax.run","-w4", "dataflows/commit_summary_service"]
 
   qdrant:
     image: qdrant/qdrant
@@ -61,7 +61,7 @@ services:
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
     volumes:
       - ./recovery/add_qdrant_service:/bytewax/recovery/add_qdrant_service
-    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/add_qdrant_service", "-s", "300", "-b", "600", "-w4", "dataflows/add_qdrant_service"]
+    command: ["python", "-m", "bytewax.run", "-w4", "dataflows/add_qdrant_service"]
 
   kafka_b:
     image: bitnami/kafka:3.4
