@@ -27,13 +27,19 @@ def test_kafka_integration(produce_messages, consume_messages):
         assert len(processed_messages) > 0, "No messages consumed from output topic"
         for msg in processed_messages:
             logger.info(f"Processed message: {msg}")
-            assert "commit_id" in msg
-            assert "author" in msg
-            assert "message" in msg
-            assert "date" in msg
-            assert "url" in msg
-            assert "repo_name" in msg
-            assert "files" in msg
+            assert "page_content" in msg
+            assert "metadata" in msg
+            metadata = msg['metadata']
+            assert "commit_id" in metadata
+            assert "author" in metadata
+            assert "date" in metadata
+            assert "repo_name" in metadata
+            assert "commit_url" in metadata
+            assert "filename" in metadata
+            assert "status" in metadata
+            assert "additions" in metadata
+            assert "deletions" in metadata
+            assert "changes" in metadata
     except TimeoutError as e:
         logger.error(e)
         assert False, str(e)
@@ -41,25 +47,39 @@ def test_kafka_integration(produce_messages, consume_messages):
     # Consume messages from the processed topic and verify
     try:
         processed_messages = consume_messages(processed_topic, num_messages=2)
-        logger.info(f"Consumed {len( processed_messages)} messages from processed topic.")
-        assert len( processed_messages) > 0, "No messages consumed from processed topic"
-        for msg in  processed_messages:
+        logger.info(f"Consumed {len(processed_messages)} messages from processed topic.")
+        assert len(processed_messages) > 0, "No messages consumed from processed topic"
+        for msg in processed_messages:
             logger.info(f"Final processed message: {msg}")
             assert "page_content" in msg
             assert "metadata" in msg
+            metadata = msg['metadata']
+            assert "commit_id" in metadata
+            assert "author" in metadata
+            assert "date" in metadata
+            assert "repo_name" in metadata
+            assert "commit_url" in metadata
+            assert "filename" in metadata
+            assert "status" in metadata
+            assert "additions" in metadata
+            assert "deletions" in metadata
+            assert "changes" in metadata
     except TimeoutError as e:
         logger.error(e)
         assert False, str(e)
+
+    # Consume messages from the Qdrant output topic and verify
     try:
         final_messages = consume_messages(qdrant_output, num_messages=2)
         logger.info(f"Consumed {len(final_messages)} messages from qdrant output topic.")
-        assert len(final_messages) > 0, "No messages consumed from processed topic"
+        assert len(final_messages) > 0, "No messages consumed from qdrant output topic"
         for msg in final_messages:
             logger.info(f"Final processed message: {msg}")
             assert "id" in msg
             assert "collection_name" in msg
-            assert msg["collection_name"]=="The Octocat_Hello-World"
+            assert msg["collection_name"] == "The Octocat_Hello-World"
     except TimeoutError as e:
         logger.error(e)
         assert False, str(e)
+
     logger.info("Kafka integration test completed successfully.")
