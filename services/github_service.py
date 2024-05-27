@@ -1,4 +1,8 @@
+from typing import Dict, Any, List
+
 from github import Github, Auth
+from langchain_core.documents import Document
+
 from models.commit import CommitData, FileInfo
 from config.config_setting import config
 from icecream import ic
@@ -7,6 +11,31 @@ from utils.setup_logging import setup_logging, get_logger
 
 setup_logging()
 logger = get_logger(__name__)
+
+def create_documents(event_data: Dict[str, Any]) -> List[Document]:
+    commit_data = CommitData(**event_data)
+    documents = []
+    for file in commit_data.files:
+        doc = create_document(file, commit_data)
+        documents.append(doc)
+    return documents
+
+def create_document(file: FileInfo, event_data: CommitData) -> Document:
+    page_content = f"Filename: {file.filename}, Status: {file.status}, Files: {file.patch}"
+    metadata = {
+        "filename": file.filename,
+        "status": file.status,
+        "additions": file.additions,
+        "deletions": file.deletions,
+        "changes": file.changes,
+        "author": event_data.author,
+        "date": event_data.date,
+        "repo_name": event_data.repo_name,
+        "commit_url": event_data.url,
+        "id": event_data.commit_id,
+        "token_count": len(page_content.split())
+    }
+    return Document(page_content=page_content, metadata=metadata)
 def fetch_and_emit_commits(repo_info):
     owner = repo_info["owner"]
     repo_name = repo_info["repo_name"]
@@ -46,7 +75,12 @@ def fetch_and_emit_commits(repo_info):
                     ) for file in commit.files]
                 )
                 logger.info(f"Processed commit ID {commit_data.commit_id} for repo {commit_data.repo_name}")
-                yield commit_data.model_dump()
+                documents = create_documents(commit_data.model_dump())
+                for document in documents:
+                    logger.info(f"Processed commit data into document with {document.metadata} for repo {commit_data.repo_name}")
+
+                    yield {"page_content": document.page_content,
+                           "metadata": document.metadata}
             except Exception as e:
                 error_message = {
                     "error": "Failed to process commit",
