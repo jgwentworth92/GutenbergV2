@@ -30,7 +30,7 @@ def test_kafka_integration(produce_messages, consume_messages):
             assert "page_content" in msg
             assert "metadata" in msg
             metadata = msg['metadata']
-            assert "commit_id" in metadata
+            assert "id" in metadata
             assert "author" in metadata
             assert "date" in metadata
             assert "repo_name" in metadata
@@ -54,7 +54,7 @@ def test_kafka_integration(produce_messages, consume_messages):
             assert "page_content" in msg
             assert "metadata" in msg
             metadata = msg['metadata']
-            assert "commit_id" in metadata
+            assert "id" in metadata
             assert "author" in metadata
             assert "date" in metadata
             assert "repo_name" in metadata
