@@ -33,7 +33,8 @@ def create_document(file: FileInfo, event_data: CommitData) -> Document:
         "repo_name": event_data.repo_name,
         "commit_url": event_data.url,
         "id": event_data.commit_id,
-        "token_count": len(page_content.split())
+        "token_count": len(page_content.split()),
+        "collection_name":f"{event_data.author}_{event_data.repo_name}"
     }
     return Document(page_content=page_content, metadata=metadata)
 def fetch_and_emit_commits(repo_info):

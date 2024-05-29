@@ -43,7 +43,7 @@ def process_message_to_vectordb(message: Dict[str, Any]) -> Generator[Dict[str, 
 
 
 
-    collection_name = documents[0].metadata.get('author') + "_" + str(documents[0].metadata.get('repo_name'))
+    collection_name = documents[0].metadata.get('collection_name')
     logging.info(f"Collection is called {collection_name}")
 
     try:
