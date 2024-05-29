@@ -73,7 +73,7 @@ def test_malformed_document_create(create_dataflow, run_dataflow, malformed_even
             assert "error" in data
             assert "details" in data
             assert "event_data" in data
-            assert data['error'] == "Failed to create documents"
+            assert data['error'] == "Failed to process document"
 
 def test_malformed_document_processing(create_dataflow, run_dataflow, document_processing_error_event_data):
     flow, captured_output = create_dataflow(lambda msg: process_message(msg), document_processing_error_event_data)
