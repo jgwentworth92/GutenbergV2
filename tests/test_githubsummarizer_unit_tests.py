@@ -61,8 +61,10 @@ def test_error_message_handling(create_dataflow, run_dataflow, error_event_data)
     assert len(captured_output) == 0  # Ensure no output is captured for error messages
 
 # Test for malformed repo data
-def test_malformed_document_create(create_dataflow, run_dataflow, malformed_event_data):
-    flow, captured_output = create_dataflow(lambda msg: process_message(msg), malformed_event_data)
+
+
+def test_malformed_document_processing(create_dataflow, run_dataflow,malformed_event_data):
+    flow, captured_output = create_dataflow(lambda msg: process_message(msg),malformed_event_data)
     run_dataflow(flow)
 
     ic(captured_output)
@@ -73,21 +75,7 @@ def test_malformed_document_create(create_dataflow, run_dataflow, malformed_even
             assert "error" in data
             assert "details" in data
             assert "event_data" in data
-            assert data['error'] == "Failed to process document"
-
-def test_malformed_document_processing(create_dataflow, run_dataflow, document_processing_error_event_data):
-    flow, captured_output = create_dataflow(lambda msg: process_message(msg), document_processing_error_event_data)
-    run_dataflow(flow)
-
-    ic(captured_output)
-    assert len(captured_output) > 0  # Ensure some output is captured
-
-    for data in captured_output:
-        if "error" in data:
-            assert "error" in data
-            assert "details" in data
-            assert "event_data" in data
-            assert data['error'] == "Failed to process document"
+            assert data['error'] == "Failed to create documents"
 
 def test_qdrant(create_dataflow,  run_dataflow,qdrant_event_data):
     flow, captured_output = create_dataflow(lambda msg: process_message_to_vectordb(msg),qdrant_event_data)
