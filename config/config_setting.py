@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     TEMPLATE: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
     PROCESSED_TOPIC: Optional[str] = None
-    VECTORDB_TOPIC_NAME:Optional[str] = "QdrantOutput"
+    VECTORDB_TOPIC_NAME:Optional[str] = "vectordb_added_doc"
     model_config = ConfigDict(env_file=".env", env_file_encoding='utf-8')
 
     @classmethod
