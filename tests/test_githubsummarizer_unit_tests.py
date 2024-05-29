@@ -12,7 +12,7 @@ def test_github_commits_hello_world(create_dataflow, run_dataflow, sample_repo_i
     run_dataflow(flow)
 
     for data in captured_output:
-        assert "commit_id" in data
+        assert "id" in data
         assert "author" in data
         assert "message" in data
         assert "date" in data
