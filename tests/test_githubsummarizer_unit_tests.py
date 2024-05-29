@@ -30,8 +30,8 @@ def test_github_commits_invalid_repo(create_dataflow, run_dataflow, invalid_repo
         assert "repo" in data or "commit_id" in data
 
 # Additional Tests for commit_summary_service_dataflow using fake event data
-def test_commit_summary(create_dataflow,  run_dataflow,fake_event_data):
-    flow, captured_output = create_dataflow(lambda msg: process_message(msg), fake_event_data)
+def test_commit_summary(create_dataflow,  run_dataflow,qdrant_event_data):
+    flow, captured_output = create_dataflow(lambda msg: process_message(msg), qdrant_event_data)
     run_dataflow(flow)
 
     ic(captured_output)
