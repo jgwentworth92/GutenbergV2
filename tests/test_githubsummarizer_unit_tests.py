@@ -12,15 +12,20 @@ def test_github_commits_hello_world(create_dataflow, run_dataflow, sample_repo_i
     run_dataflow(flow)
 
     for data in captured_output:
-        metadata = data['metadata']
+        assert "metadata" in data
+        assert "page_content" in data
+        assert "metadata" in data
+        assert "filename" in data["metadata"]
+        assert "status" in data["metadata"]
+        assert "additions" in data["metadata"]
+        assert "deletions" in data["metadata"]
+        assert "changes" in data["metadata"]
+        assert "author" in data["metadata"]
+        assert "date" in data["metadata"]
+        assert "repo_name" in data["metadata"]
+        assert "commit_url" in data["metadata"]
+        assert "id" in data["metadata"]
 
-        assert "id" in metadata
-        assert "author" in metadata
-        assert "message" in metadata
-        assert "date" in metadata
-        assert "url" in metadata
-        assert "repo_name" in metadata
-        assert "files" in metadata
 
 
 def test_github_commits_invalid_repo(create_dataflow, run_dataflow, invalid_repo_info):
