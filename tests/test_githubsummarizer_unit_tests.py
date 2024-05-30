@@ -12,13 +12,16 @@ def test_github_commits_hello_world(create_dataflow, run_dataflow, sample_repo_i
     run_dataflow(flow)
 
     for data in captured_output:
-        assert "id" in data
-        assert "author" in data
-        assert "message" in data
-        assert "date" in data
-        assert "url" in data
-        assert "repo_name" in data
-        assert "files" in data
+        metadata = data['metadata']
+
+        assert "id" in metadata
+        assert "author" in metadata
+        assert "message" in metadata
+        assert "date" in metadata
+        assert "url" in metadata
+        assert "repo_name" in metadata
+        assert "files" in metadata
+
 
 def test_github_commits_invalid_repo(create_dataflow, run_dataflow, invalid_repo_info):
     flow, captured_output = create_dataflow(fetch_and_emit_commits, invalid_repo_info)
@@ -29,8 +32,9 @@ def test_github_commits_invalid_repo(create_dataflow, run_dataflow, invalid_repo
         assert "details" in data
         assert "repo" in data or "commit_id" in data
 
+
 # Additional Tests for commit_summary_service_dataflow using fake event data
-def test_commit_summary(create_dataflow,  run_dataflow,qdrant_event_data):
+def test_commit_summary(create_dataflow, run_dataflow, qdrant_event_data):
     flow, captured_output = create_dataflow(lambda msg: process_message(msg), qdrant_event_data)
     run_dataflow(flow)
 
@@ -53,6 +57,7 @@ def test_commit_summary(create_dataflow,  run_dataflow,qdrant_event_data):
             assert "id" in data["metadata"]
             assert "token_count" in data["metadata"]
 
+
 def test_error_message_handling(create_dataflow, run_dataflow, error_event_data):
     flow, captured_output = create_dataflow(lambda msg: process_message(msg), error_event_data)
     run_dataflow(flow)
@@ -60,11 +65,12 @@ def test_error_message_handling(create_dataflow, run_dataflow, error_event_data)
     ic(captured_output)
     assert len(captured_output) == 0  # Ensure no output is captured for error messages
 
+
 # Test for malformed repo data
 
 
-def test_malformed_document_processing(create_dataflow, run_dataflow,malformed_event_data):
-    flow, captured_output = create_dataflow(lambda msg: process_message(msg),malformed_event_data)
+def test_malformed_document_processing(create_dataflow, run_dataflow, malformed_event_data):
+    flow, captured_output = create_dataflow(lambda msg: process_message(msg), malformed_event_data)
     run_dataflow(flow)
 
     ic(captured_output)
@@ -77,8 +83,9 @@ def test_malformed_document_processing(create_dataflow, run_dataflow,malformed_e
             assert "event_data" in data
             assert data['error'] == "Failed to create documents"
 
-def test_qdrant(create_dataflow,  run_dataflow,qdrant_event_data):
-    flow, captured_output = create_dataflow(lambda msg: process_message_to_vectordb(msg),qdrant_event_data)
+
+def test_qdrant(create_dataflow, run_dataflow, qdrant_event_data):
+    flow, captured_output = create_dataflow(lambda msg: process_message_to_vectordb(msg), qdrant_event_data)
     run_dataflow(flow)
 
     ic(f"captured data:{captured_output}")
@@ -88,4 +95,3 @@ def test_qdrant(create_dataflow,  run_dataflow,qdrant_event_data):
         assert "collection_name" in msg
         assert msg["collection_name"] == "The Octocat_Hello-World"
     assert len(captured_output) > 0
-
