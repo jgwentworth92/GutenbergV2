@@ -115,33 +115,6 @@ services:
       DYNAMIC_CONFIG_ENABLED: 'true'
     volumes:
       - ./kui/config.yml:/etc/kafkaui/dynamic_config.yaml
-
-  rest-proxy:
-    image: confluentinc/cp-kafka-rest:6.0.0
-    depends_on:
-      init-topics:
-        condition: service_completed_successfully
-    ports:
-      - 8082:8082
-    hostname: rest-proxy
-    container_name: rest-proxy
-    environment:
-      KAFKA_REST_HOST_NAME: rest-proxy
-      KAFKA_REST_BOOTSTRAP_SERVERS: 'kafka_b:9094'
-      KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
-
-  schema-registry:
-    image: confluentinc/cp-schema-registry:latest
-    hostname: schema-registry
-    depends_on:
-      init-topics:
-        condition: service_completed_successfully
-    ports:
-      - "8081:8081"
-    environment:
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka_b:9094,PLAINTEXT_INTERNAL://localhost:29092
-
 volumes:
   qdrant-storage:
     driver: local
