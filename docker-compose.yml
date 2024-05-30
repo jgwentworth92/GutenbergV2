@@ -32,10 +32,10 @@ services:
     container_name: init_topics
     command: >
       sh -c "
-        /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic QdrantOutput &&
-        /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic repos-topic &&
-        /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic github-commits-out &&
-        /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic addtovectordb
+        /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${QDRANT_OUTPUT_TOPIC} &&
+        /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${REPOS_TOPIC} &&
+        /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${GITHUB_COMMITS_OUT_TOPIC} &&
+        /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${ADDTOVECTORDB_TOPIC}
       "
     depends_on:
       kafka_b:
@@ -52,6 +52,7 @@ services:
       INPUT_TOPIC: "${INPUT_TOPIC}"
       OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
       GITHUB_TOKEN: "${GITHUB_TOKEN}"
+      VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
       CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
       PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
     volumes:
@@ -71,6 +72,7 @@ services:
       PROCESSED_TOPIC: "${PROCESSED_TOPIC}"
       CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
       PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
+      VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
       TEMPLATE: "${TEMPLATE}"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
     volumes:
@@ -97,6 +99,7 @@ services:
       PROCESSED_TOPIC: "${PROCESSED_TOPIC}"
       CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
       PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
+      VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
       TEMPLATE: "${TEMPLATE}"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
     volumes:
