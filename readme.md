@@ -17,6 +17,7 @@ The project aims to develop an automated system capable of grading GitHub reposi
   - [Configuration](#configuration)
   - [Running the Services](#running-the-services)
   - [Running the Dataflows](#running-the-dataflows)
+  - [Creating Recovery Partitions](#creating-recovery-partitions)
   - [Testing](#testing)
   - [Additional Services](#additional-services)
     - [Kafka UI](#kafka-ui)
@@ -143,6 +144,32 @@ And to run the add to Qdrant service dataflow:
 python -m bytewax.run -w3 dataflows.add_qdrant_service
 ```
 
+## Creating Recovery Partitions
+
+Before creating recovery partitions, ensure that the necessary directories exist. If not, create them:
+
+```sh
+mkdir -p recovery/github_listener
+mkdir -p recovery/commit_summary_service
+mkdir -p recovery/add_qdrant_service
+```
+
+To set up recovery partitions for each microservice, run the following commands. This ensures that Bytewax can recover from failures and continue processing.
+
+1. **GitHub Commit Processing Recovery Partition:**
+   ```sh
+   python -m bytewax.recovery recovery/github_listener 4
+   ```
+
+2. **Commit Summary Service Recovery Partition:**
+   ```sh
+   python -m bytewax.recovery recovery/commit_summary_service 4
+   ```
+
+3. **Add to Qdrant Service Recovery Partition:**
+   ```sh
+   python -m bytewax.recovery recovery/add_qdrant_service 4
+   ```
 
 These commands should be run from the root directory of your project.
 
