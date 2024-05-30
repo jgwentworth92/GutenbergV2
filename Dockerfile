@@ -15,7 +15,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Create recovery directories for each service
-RUN mkdir -p /bytewax/recovery/github_listener /bytewax/recovery/commit_summary_service
+RUN mkdir -p /bytewax/recovery/github_listener /bytewax/recovery/commit_summary_service  /bytewax/recovery/add_qdrant_service
 
 # Copy requirements file and install dependencies
 COPY ./requirements.txt /bytewax/requirements.txt
