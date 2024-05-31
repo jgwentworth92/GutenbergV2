@@ -12,15 +12,16 @@ def process_message(message: Dict[str, Any]) -> Generator[Dict[str, Any], None, 
         logger.error(f"Error in message: {message}")
         return
     event_data = message
-    yield event_data
     try:
 
         try:
             chain = setup_chat_model()
             summary = chain.invoke({"text":event_data["page_content"]})
+            metadata= event_data["metadata"]
+            metadata["vector_id"] = f"{metadata["vector_id"]}_llm"
             updated_doc = {
                 "page_content": "Summary: " + summary,
-                "metadata": event_data["metadata"]
+                "metadata":  metadata
             }
 
             yield updated_doc

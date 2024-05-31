@@ -15,6 +15,7 @@ def create_documents(event_data: CommitData) -> List[Document]:
 
 def create_document(file: FileInfo, event_data: CommitData) -> Document:
     page_content = f"Filename: {file.filename}, Status: {file.status}, Files: {file.patch}"
+    ic(f" the page content {page_content} for {file.filename} with commit id {event_data.commit_id}")
     metadata = {
         "filename": file.filename,
         "status": file.status,
@@ -27,7 +28,8 @@ def create_document(file: FileInfo, event_data: CommitData) -> Document:
         "commit_url": event_data.url,
         "id": event_data.commit_id,
         "token_count": len(page_content.split()),
-        "collection_name": f"{event_data.author}_{event_data.repo_name}"
+        "collection_name": f"{event_data.repo_name}",
+        "vector_id":event_data.commit_id+file.filename
     }
     return Document(page_content=page_content, metadata=metadata)
 

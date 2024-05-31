@@ -14,10 +14,15 @@ from utils.setup_logging import get_logger, setup_logging
 
 setup_logging()
 logging = get_logger(__name__)
+import uuid
+import hashlib
+def generate_uuid_from_string(val: str):
+    hex_string = hashlib.md5(val.encode("UTF-8")).hexdigest()
+    logging.info(f"id produced {hex_string}")
+
+    return uuid.UUID(hex=hex_string)
 
 def process_message_to_vectordb(message: Dict[str, Any]) -> Generator[Dict[str, Any], None, None]:
-
-
     if "error" in message:
         logging.error(f"Error in message: {message}")
         yield {"error": "Invalid message received", "details": message}
@@ -29,6 +34,7 @@ def process_message_to_vectordb(message: Dict[str, Any]) -> Generator[Dict[str, 
         return
 
     try:
+        ic(f"passed in data is {message}")
         documents = [Document(page_content=message['page_content'], metadata=message['metadata'])]
     except Exception as e:
         logging.error(f"Failed to parse documents: {e}")
@@ -40,9 +46,6 @@ def process_message_to_vectordb(message: Dict[str, Any]) -> Generator[Dict[str, 
         yield {"error": "No valid documents found", "details": message}
         return
 
-
-
-
     collection_name = documents[0].metadata.get('collection_name')
     logging.info(f"Collection is called {collection_name}")
 
@@ -50,10 +53,24 @@ def process_message_to_vectordb(message: Dict[str, Any]) -> Generator[Dict[str, 
         embed = setup_embedding_model()
         vectordb = get_qdrant_vector_store(host=config.VECTOR_DB_HOST, port=config.VECTOR_DB_PORT,
                                            embeddings=embed, collection_name=collection_name)
-        ids = vectordb.add_documents(documents)
-        result_message = {"collection_name":collection_name,"id":ids}
-        logging.info(f"Processed {len(ids)} documents into vectordb collection")
+
+        # Extract text, metadata, and ids from documents
+        texts = [doc.page_content for doc in documents]
+        metadatas = [doc.metadata for doc in documents]
+
+        # Generate UUIDs from file name and commit ID
+        ids = [
+            str(generate_uuid_from_string(f"{doc.metadata.get('vector_id')}"))
+            for doc in documents
+        ]
+
+        # Use add_texts method to add documents with specific IDs
+        added_ids = vectordb.add_texts(texts=texts, metadatas=metadatas, ids=ids)
+
+        result_message = {"collection_name": collection_name, "id": added_ids}
+        logging.info(f"Processed {len(added_ids)} documents into vectordb collection")
         yield result_message
     except Exception as e:
         logging.error(f"Failed to add documents to Qdrant: {e}")
         yield {"error": "Failed to add documents to Qdrant", "details": str(e)}
+
