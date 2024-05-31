@@ -77,7 +77,7 @@ def test_kafka_integration(produce_messages, consume_messages):
             logger.info(f"Final processed message: {msg}")
             assert "id" in msg
             assert "collection_name" in msg
-            assert msg["collection_name"] == "The Octocat_Hello-World"
+            assert msg["collection_name"] == "Hello-World"
     except TimeoutError as e:
         logger.error(e)
         assert False, str(e)
