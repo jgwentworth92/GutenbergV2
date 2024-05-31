@@ -12,6 +12,7 @@ def process_message(message: Dict[str, Any]) -> Generator[Dict[str, Any], None, 
         logger.error(f"Error in message: {message}")
         return
     event_data = message
+    yield event_data
     try:
 
         try:
@@ -21,7 +22,7 @@ def process_message(message: Dict[str, Any]) -> Generator[Dict[str, Any], None, 
                 "page_content": "Summary: " + summary,
                 "metadata": event_data["metadata"]
             }
-            yield event_data
+
             yield updated_doc
             logger.info(f"Metadata of commit {event_data['metadata']}")
         except Exception as e:
