@@ -29,7 +29,7 @@ def create_document(file: FileInfo, event_data: CommitData) -> Document:
         "id": event_data.commit_id,
         "token_count": len(page_content.split()),
         "collection_name": f"{event_data.repo_name}",
-        "vector_id": event_data.commit_id + file.filename
+        "vector_id":event_data.commit_id+file.filename
     }
     return Document(page_content=page_content, metadata=metadata)
 
@@ -74,7 +74,7 @@ def fetch_and_emit_commits(repo_info: Dict[str, str]) -> Generator[Dict[str, Any
         commits = repo.get_commits()  # Use generator to avoid loading all commits into memory
         with Pool() as pool:
             commit_args = ((commit, repo_name) for commit in commits)
-            for commit_data in pool.imap_unordered(fetch_commit_data, commit_args):
+            for commit_data in pool.map(fetch_commit_data, commit_args):
                 logger.info(f"Processed commit ID {commit_data.commit_id} for repo {commit_data.repo_name}")
                 documents = create_documents(commit_data)
                 for document in documents:
