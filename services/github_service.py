@@ -5,7 +5,7 @@ from models.commit import CommitData, FileInfo
 from config.config_setting import config
 from icecream import ic
 from utils.setup_logging import setup_logging, get_logger
-import concurrent.futures
+from multiprocessing import Pool
 
 setup_logging()
 logger = get_logger(__name__)
@@ -29,11 +29,12 @@ def create_document(file: FileInfo, event_data: CommitData) -> Document:
         "id": event_data.commit_id,
         "token_count": len(page_content.split()),
         "collection_name": f"{event_data.repo_name}",
-        "vector_id":event_data.commit_id+file.filename
+        "vector_id": event_data.commit_id + file.filename
     }
     return Document(page_content=page_content, metadata=metadata)
 
-def fetch_commit_data(commit: Commit,repo_name:str) -> CommitData:
+def fetch_commit_data(args) -> CommitData:
+    commit, repo_name = args
     return CommitData(
         author=commit.commit.author.name,
         message=commit.commit.message,
@@ -70,27 +71,15 @@ def fetch_and_emit_commits(repo_info: Dict[str, str]) -> Generator[Dict[str, Any
         return
 
     try:
-        repo_name=repo.name
-        commits = list(repo.get_commits())  # Convert to list to allow re-iteration
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_to_commit = {executor.submit(fetch_commit_data, commit,repo_name): commit for commit in commits}
-            for future in concurrent.futures.as_completed(future_to_commit):
-                commit = future_to_commit[future]
-                try:
-                    commit_data = future.result()
-                    logger.info(f"Processed commit ID {commit_data.commit_id} for repo {commit_data.repo_name}")
-                    documents = create_documents(commit_data)
-                    for document in documents:
-                        logger.info(f"Processed commit data into document with {document.metadata} for repo {commit_data.repo_name}")
-                        yield {"page_content": document.page_content, "metadata": document.metadata}
-                except Exception as e:
-                    error_message = {
-                        "error": "Failed to process commit",
-                        "details": str(e),
-                        "commit_id": commit.sha
-                    }
-                    logger.error(error_message)
-                    return
+        commits = repo.get_commits()  # Use generator to avoid loading all commits into memory
+        with Pool() as pool:
+            commit_args = ((commit, repo_name) for commit in commits)
+            for commit_data in pool.imap_unordered(fetch_commit_data, commit_args):
+                logger.info(f"Processed commit ID {commit_data.commit_id} for repo {commit_data.repo_name}")
+                documents = create_documents(commit_data)
+                for document in documents:
+                    logger.info(f"Processed commit data into document with {document.metadata} for repo {commit_data.repo_name}")
+                    yield {"page_content": document.page_content, "metadata": document.metadata}
     except Exception as e:
         error_message = {
             "error": "Failed to fetch commits",
