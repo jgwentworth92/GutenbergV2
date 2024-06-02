@@ -21,10 +21,8 @@ def get_fake_chat_model():
 
 def setup_chat_model():
     if config.MODEL_PROVIDER == 'openai':
-        ic("open ai model is being used")
         model_setup_function = get_openai_chat_model
     elif config.MODEL_PROVIDER == 'fake':
-        ic("Fake model is being used")
         model_setup_function = get_fake_chat_model
     else:
         raise ValueError(f"Unsupported chat model provider: {config.MODEL_PROVIDER}")
@@ -39,10 +37,8 @@ def get_fake_embedding_model():
 
 def setup_embedding_model():
     if config.MODEL_PROVIDER == 'openai':
-        ic("OpenAI embedding model is being used")
         model_setup_function = get_openai_embedding_model
     elif config.MODEL_PROVIDER == 'fake':
-        ic("Fake embedding model is being used")
         model_setup_function = get_fake_embedding_model
     else:
         raise ValueError(f"Unsupported embedding model provider: {config.EMBEDDING_MODEL_PROVIDER}")
