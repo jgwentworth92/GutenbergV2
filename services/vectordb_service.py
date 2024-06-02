@@ -1,28 +1,42 @@
-
 from typing import Generator, Dict, Any
-
 from icecream import ic
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.embeddings import FakeEmbeddings
-
-
 from config.config_setting import config
 from utils.get_qdrant import get_qdrant_vector_store
 from utils.model_utils import setup_embedding_model
 from utils.setup_logging import get_logger, setup_logging
+import uuid
+import hashlib
 
 setup_logging()
 logging = get_logger(__name__)
-import uuid
-import hashlib
-def generate_uuid_from_string(val: str):
+
+def generate_uuid_from_string(val: str) -> uuid.UUID:
+    """
+    Generates a UUID based on a given string using MD5 hashing.
+
+    Args:
+        val (str): The string to generate the UUID from.
+
+    Returns:
+        uuid.UUID: The generated UUID.
+    """
     hex_string = hashlib.md5(val.encode("UTF-8")).hexdigest()
     logging.info(f"id produced {hex_string}")
-
     return uuid.UUID(hex=hex_string)
 
 def process_message_to_vectordb(message: Dict[str, Any]) -> Generator[Dict[str, Any], None, None]:
+    """
+    Processes a message containing documents and stores them in a vector database.
+
+    Args:
+        message (Dict[str, Any]): The message containing a list of documents to be processed.
+
+    Yields:
+        Generator[Dict[str, Any], None, None]: A generator yielding the result of the operation, including any errors.
+    """
     try:
         documents = [Document(page_content=doc['page_content'], metadata=doc['metadata']) for doc in message["documents"]]
         logging.debug(f"Processing documents to VectorDB: {documents}")
@@ -43,14 +57,10 @@ def process_message_to_vectordb(message: Dict[str, Any]) -> Generator[Dict[str, 
         vectordb = get_qdrant_vector_store(host=config.VECTOR_DB_HOST, port=config.VECTOR_DB_PORT,
                                            embeddings=embed, collection_name=collection_name)
 
-        # Extract text, metadata, and ids from documents
         texts = [doc.page_content for doc in documents]
         metadatas = [doc.metadata for doc in documents]
-
-        # Generate UUIDs from file name and commit ID
         ids = [str(generate_uuid_from_string(f"{doc.metadata.get('vector_id')}")) for doc in documents]
 
-        # Use add_texts method to add documents with specific IDs
         added_ids = vectordb.add_texts(texts=texts, metadatas=metadatas, ids=ids)
 
         result_message = {"collection_name": collection_name, "id": added_ids}

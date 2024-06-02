@@ -8,6 +8,15 @@ setup_logging()
 logger = get_logger(__name__)
 
 def process_document(document: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Processes a single document by generating a summary and updating metadata.
+
+    Args:
+        document (Dict[str, Any]): The document to process, containing 'page_content' and 'metadata'.
+
+    Returns:
+        Dict[str, Any]: The updated document with a summary and updated metadata.
+    """
     try:
         chain = setup_chat_model()
         summary = chain.invoke({"text": document["page_content"]})
@@ -26,8 +35,18 @@ def process_document(document: Dict[str, Any]) -> Dict[str, Any]:
             "document_metadata": document["metadata"]
         }
         logger.error(error_message)
+        return {}
 
 def process_messages(messages: Dict[str, Any]) -> Generator[Dict[str, Any], None, None]:
+    """
+    Processes a batch of documents, generating summaries for each and collecting the results.
+
+    Args:
+        messages (Dict[str, Any]): A dictionary containing a list of documents under the key 'documents'.
+
+    Yields:
+        Generator[Dict[str, Any], None, None]: A generator yielding a dictionary containing the processed documents.
+    """
     start_time = time.time()
     processed_results = []
 
@@ -36,7 +55,7 @@ def process_messages(messages: Dict[str, Any]) -> Generator[Dict[str, Any], None
             documents = messages["documents"]
             for result in pool.imap_unordered(process_document, documents):
                 if result:
-                    logger.info(f"processed docuement with metadata {result['metadata']}")
+                    logger.info(f"Processed document with metadata {result['metadata']}")
                     processed_results.append(result)
     except Exception as e:
         error_message = {
@@ -53,7 +72,3 @@ def process_messages(messages: Dict[str, Any]) -> Generator[Dict[str, Any], None
         if processed_results:
             yield {"documents": processed_results}
 
-# Example usage:
-# messages = {"documents": [list of documents]}
-# for result in process_messages(messages):
-#     # handle the processed documents
