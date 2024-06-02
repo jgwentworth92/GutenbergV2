@@ -1,28 +1,12 @@
-from bytewax.dataflow import Dataflow
 import bytewax.operators as op
-from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage
-from confluent_kafka import OFFSET_END
-from icecream import ic
-from langchain_core.documents import Document
-from langchain_openai import OpenAIEmbeddings
-
-from config.config_setting import config
-from services.message_processing_service import process_message
-from services.vectordb_service import process_message_to_vectordb
-from utils.get_qdrant import get_qdrant_vector_store
-from utils.kafka_utils import inspect_output_topic
 import orjson
+from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage
+from bytewax.dataflow import Dataflow
 from confluent_kafka import OFFSET_STORED
-from bytewax.dataflow import Dataflow
-import bytewax.operators as op
-from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage
-from config.config_setting import config
+from icecream import ic
 
-from utils.kafka_utils import inspect_output_topic
-import orjson
-import logging
-from pydantic import BaseModel
-from typing import List, Dict, Any, Generator
+from config.config_setting import config
+from services.vectordb_service import process_message_to_vectordb
 
 # Application setup
 brokers = [config.BROKERS]

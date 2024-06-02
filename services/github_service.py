@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Generator
+from typing import Dict, Any, Generator, List
 from github import Github, Auth, Commit
 from langchain_core.documents import Document
 from models.commit import CommitData, FileInfo
@@ -15,7 +15,6 @@ def create_documents(event_data: CommitData) -> List[Document]:
 
 def create_document(file: FileInfo, event_data: CommitData) -> Document:
     page_content = f"Filename: {file.filename}, Status: {file.status}, Files: {file.patch}"
-    ic(f" the page content {page_content} for {file.filename} with commit id {event_data.commit_id}")
     metadata = {
         "filename": file.filename,
         "status": file.status,
@@ -29,7 +28,7 @@ def create_document(file: FileInfo, event_data: CommitData) -> Document:
         "id": event_data.commit_id,
         "token_count": len(page_content.split()),
         "collection_name": f"{event_data.repo_name}",
-        "vector_id":event_data.commit_id+file.filename
+        "vector_id": event_data.commit_id + file.filename
     }
     return Document(page_content=page_content, metadata=metadata)
 
@@ -74,12 +73,11 @@ def fetch_and_emit_commits(repo_info: Dict[str, str]) -> Generator[Dict[str, Any
         commits = repo.get_commits()  # Use generator to avoid loading all commits into memory
         with Pool() as pool:
             commit_args = ((commit, repo_name) for commit in commits)
-            for commit_data in pool.map(fetch_commit_data, commit_args):
+            for commit_data in pool.imap_unordered(fetch_commit_data, commit_args):
                 logger.info(f"Processed commit ID {commit_data.commit_id} for repo {commit_data.repo_name}")
                 documents = create_documents(commit_data)
-                for document in documents:
-                    logger.info(f"Processed commit data into document with {document.metadata} for repo {commit_data.repo_name}")
-                    yield {"page_content": document.page_content, "metadata": document.metadata}
+                yield {"documents": [{"page_content": document.page_content, "metadata": document.metadata} for document in documents]}
+                logger.info(f"Processed commit data into {len(documents)} documents for repo {commit_data.repo_name}")
     except Exception as e:
         error_message = {
             "error": "Failed to fetch commits",
