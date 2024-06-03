@@ -49,7 +49,7 @@ def test_kafka_integration(produce_messages, consume_messages):
         processed_messages = consume_messages(processed_topic, num_messages=2)
         logger.info(f"Consumed {len(processed_messages)} messages from processed topic.")
         assert len(processed_messages) > 0, "No messages consumed from processed topic"
-        for msg in processed_messages:
+        for msg in processed_messages[0]:
             logger.info(f"Final processed message: {msg}")
             assert "page_content" in msg
             assert "metadata" in msg
