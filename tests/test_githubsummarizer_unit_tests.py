@@ -2,7 +2,7 @@ import pytest
 from icecream import ic
 
 from services.github_service import fetch_and_emit_commits
-from services.message_processing_service import process_message
+from services.message_processing_service import process_messages
 from services.vectordb_service import process_message_to_vectordb
 
 
@@ -64,7 +64,7 @@ def test_commit_summary(create_dataflow, run_dataflow, qdrant_event_data):
 
 
 def test_error_message_handling(create_dataflow, run_dataflow, error_event_data):
-    flow, captured_output = create_dataflow(lambda msg: process_message(msg), error_event_data)
+    flow, captured_output = create_dataflow(lambda msg: process_messages(msg), error_event_data)
     run_dataflow(flow)
 
     ic(captured_output)
@@ -75,7 +75,7 @@ def test_error_message_handling(create_dataflow, run_dataflow, error_event_data)
 
 
 def test_malformed_document_processing(create_dataflow, run_dataflow, malformed_event_data):
-    flow, captured_output = create_dataflow(lambda msg: process_message(msg), malformed_event_data)
+    flow, captured_output = create_dataflow(lambda msg: process_messages(msg), malformed_event_data)
     run_dataflow(flow)
 
     ic(captured_output)
