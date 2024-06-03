@@ -7,7 +7,7 @@ services:
       - "9092:9092"
       - "9094:9094"
     volumes:
-      - "kafka_data:/bitnami"
+      - kafka_data:/bitnami
     environment:
       - KAFKA_ENABLE_KRAFT=yes
       - KAFKA_CFG_PROCESS_ROLES=broker,controller
@@ -57,7 +57,7 @@ services:
       PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
     volumes:
       - ./recovery/github_listener:/bytewax/recovery/github_listener
-    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/commit_summary_service", "-s", "3", "-b", "0", "-w4", "dataflows/commit_summary_service"]
+    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/github_listener", "-s", "3", "-b", "0", "-w4", "dataflows/github_commit_processing"]
 
   commit_summary_service:
     build: .
@@ -78,7 +78,8 @@ services:
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
     volumes:
       - ./recovery/commit_summary_service:/bytewax/recovery/commit_summary_service
-    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/github_listener", "-s", "3", "-b", "0", "-w4", "dataflows/github_commit_processing"]
+    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/commit_summary_service", "-s", "3", "-b", "0", "-w4", "dataflows/commit_summary_service"]
+
   qdrant:
     image: qdrant/qdrant
     ports:
@@ -120,6 +121,7 @@ services:
       DYNAMIC_CONFIG_ENABLED: 'true'
     volumes:
       - ./kui/config.yml:/etc/kafkaui/dynamic_config.yaml
+
 volumes:
   qdrant-storage:
     driver: local
