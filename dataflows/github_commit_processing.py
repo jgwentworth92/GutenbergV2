@@ -43,6 +43,5 @@ op.output("kafka-output", kafka_messages, KafkaSink(brokers=brokers, topic=confi
 kafka_output_input = op.input("kafka-output-input", flow,
                               KafkaSource(brokers=brokers,  topics=[output_topic],
                                           add_config=producer_config))
-input_test = op.inspect("check_output", kafka_output_input)
 
-# Inspect the output topic messages
+
