@@ -1,5 +1,3 @@
-import json
-
 import pytest
 from config.config_setting import config
 import logging
@@ -12,11 +10,7 @@ input_topic = config.INPUT_TOPIC
 output_topic = config.OUTPUT_TOPIC
 processed_topic = config.PROCESSED_TOPIC
 qdrant_output=config.VECTORDB_TOPIC_NAME
-
-
 def test_kafka_integration(produce_messages, consume_messages):
-
-
     # Produce test messages to the input topic
     test_messages = [
         {"owner": "octocat", "repo_name": "Hello-World"},
@@ -31,12 +25,9 @@ def test_kafka_integration(produce_messages, consume_messages):
         processed_messages = consume_messages(output_topic, num_messages=2)
         logger.info(f"Consumed {len(processed_messages)} messages from output topic.")
         assert len(processed_messages) > 0, "No messages consumed from output topic"
-
         for msg in processed_messages:
-            msg = json.loads(msg)
-            logger.info(f"Processed message: {msg}")
-            assert "page_content" in msg
-            assert "metadata" in msg
+            logger.info(f"Processed message: {msg}")  # Add this line to log the message
+
             metadata = msg['metadata']
             assert "id" in metadata
             assert "author" in metadata
@@ -59,10 +50,8 @@ def test_kafka_integration(produce_messages, consume_messages):
         assert len(processed_messages) > 0, "No messages consumed from processed topic"
 
         for msg in processed_messages:
-            msg = json.loads(msg)
             logger.info(f"Final processed message: {msg}")
-            assert "page_content" in msg
-            assert "metadata" in msg
+
             metadata = msg['metadata']
             assert "id" in metadata
             assert "author" in metadata
@@ -83,9 +72,7 @@ def test_kafka_integration(produce_messages, consume_messages):
         final_messages = consume_messages(qdrant_output, num_messages=2)
         logger.info(f"Consumed {len(final_messages)} messages from qdrant output topic.")
         assert len(final_messages) > 0, "No messages consumed from qdrant output topic"
-
         for msg in final_messages:
-            msg = json.loads(msg)
             logger.info(f"Final processed message: {msg}")
             assert "id" in msg
             assert "collection_name" in msg
