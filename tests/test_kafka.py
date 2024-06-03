@@ -15,10 +15,7 @@ qdrant_output=config.VECTORDB_TOPIC_NAME
 
 
 def test_kafka_integration(produce_messages, consume_messages):
-    input_topic = "your_input_topic"
-    output_topic = "your_output_topic"
-    processed_topic = "your_processed_topic"
-    qdrant_output = "your_qdrant_output_topic"
+
 
     # Produce test messages to the input topic
     test_messages = [
