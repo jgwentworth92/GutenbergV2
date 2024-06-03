@@ -102,6 +102,7 @@ my_project/
    OPENAI_API_KEY=your_openai_api_key
    MODEL_PROVIDER=openai
    TEMPLATE=your_template_string
+   LOCAL_LLM_URL = "http://[your_ip_address]:1234/v1"
    ```
 
 ## Configuration

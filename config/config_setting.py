@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     PROCESSED_TOPIC: Optional[str] = None
     VECTORDB_TOPIC_NAME:Optional[str] = "vectordb_added_doc"
+    LOCAL_LLM_URL: str
     model_config = ConfigDict(env_file=".env", env_file_encoding='utf-8')
 
     @classmethod

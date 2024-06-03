@@ -76,6 +76,7 @@ services:
       VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
       TEMPLATE: "${TEMPLATE}"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      LOCAL_LLM_URL: "${LOCAL_LLM_URL}"
     volumes:
       - ./recovery/commit_summary_service:/bytewax/recovery/commit_summary_service
     command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/commit_summary_service", "-s", "3", "-b", "0", "-w4", "dataflows/commit_summary_service"]
@@ -105,6 +106,7 @@ services:
       MODEL_PROVIDER: "${MODEL_PROVIDER}"
       TEMPLATE: "${TEMPLATE}"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      LOCAL_LLM_URL: "${LOCAL_LLM_URL}"
     volumes:
       - ./recovery/add_qdrant_service:/bytewax/recovery/add_qdrant_service
     command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/add_qdrant_service", "-s", "3", "-b", "0", "-w4", "dataflows/add_qdrant_service"]
