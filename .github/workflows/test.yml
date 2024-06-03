@@ -37,6 +37,7 @@ jobs:
           echo "OPENAI_API_KEY=sk-fakekeyapikey" >> $GITHUB_ENV
           echo "TEMPLATE=${{ secrets.TEMPLATE }}" >> $GITHUB_ENV
           echo "VECTOR_DB_HOST=localhost" >> $GITHUB_ENV
+          echo "LOCAL_LLM_URL=localhost" >> $GITHUB_ENV
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
