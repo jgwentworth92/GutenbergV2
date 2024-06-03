@@ -1,7 +1,7 @@
 from typing import Dict, Any, Generator, List, Tuple
 from github import Github, Auth, Commit
-from langchain_core.documents import Document
 from models.commit import CommitData, FileInfo
+from models.document import Document  # Import the Pydantic Document class
 from config.config_setting import config
 from icecream import ic
 from utils.setup_logging import setup_logging, get_logger
@@ -80,7 +80,7 @@ def fetch_commit_data(args: Tuple[Commit, str]) -> CommitData:
         ) for file in commit.files]
     )
 
-def fetch_and_emit_commits(repo_info: Dict[str, str]) -> Generator[Dict[str, Any], None, None]:
+def fetch_and_emit_commits(repo_info: Dict[str, str]) -> Generator[str, None, None]:
     """
     Fetches commits from a GitHub repository and processes them into documents.
 
@@ -88,7 +88,7 @@ def fetch_and_emit_commits(repo_info: Dict[str, str]) -> Generator[Dict[str, Any
         repo_info (Dict[str, str]): A dictionary containing repository information with keys 'owner' and 'repo_name'.
 
     Yields:
-        Generator[Dict[str, Any], None, None]: A generator yielding dictionaries containing processed documents.
+        Generator[str, None, None]: A generator yielding JSON strings of processed documents.
     """
     start_time = time.time()
     owner = repo_info["owner"]
@@ -115,7 +115,7 @@ def fetch_and_emit_commits(repo_info: Dict[str, str]) -> Generator[Dict[str, Any
             for commit_data in pool.imap_unordered(fetch_commit_data, commit_args):
                 logger.info(f"Processed commit ID {commit_data.commit_id} for repo {commit_data.repo_name}")
                 documents = create_documents(commit_data)
-                yield {"documents": [{"page_content": document.page_content, "metadata": document.metadata} for document in documents]}
+                yield [document.model_dump_json() for document in documents]
                 logger.info(f"Processed commit data into {len(documents)} documents for repo {commit_data.repo_name}")
     except Exception as e:
         error_message = {
@@ -129,4 +129,5 @@ def fetch_and_emit_commits(repo_info: Dict[str, str]) -> Generator[Dict[str, Any
         end_time = time.time()
         total_time = end_time - start_time
         logger.info(f"Total time to process commits: {total_time:.2f} seconds")
+
 
