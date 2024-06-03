@@ -52,7 +52,7 @@ def create_document(file: FileInfo, event_data: CommitData) -> Document:
     }
     return Document(page_content=page_content, metadata=metadata)
 
-def fetch_commit_data(args: Tuple[Commit, str]) -> CommitData:
+def fetch_commit_data(args) -> CommitData:
     """
     Fetches commit data and creates a CommitData object from it.
 

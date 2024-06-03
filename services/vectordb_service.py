@@ -39,7 +39,7 @@ def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any],
         Generator[Dict[str, Any], None, None]: A generator yielding the result of the operation, including any errors.
     """
     try:
-        documents = [Document.parse_raw(doc) for doc in message]
+        documents = [Document.model_validate_json(doc) for doc in message]
         logging.debug(f"Processing documents to VectorDB: {documents}")
     except Exception as e:
         logging.error(f"Failed to parse documents: {e} with message {message}")

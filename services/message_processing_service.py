@@ -38,6 +38,7 @@ def process_document(document: Document) -> Document:
         logger.error(error_message)
 
 
+
 def process_messages(messages: List[str]) -> Generator[Dict[str, Any], None, None]:
     """
     Processes a batch of documents, generating summaries for each and collecting the results.
@@ -52,7 +53,7 @@ def process_messages(messages: List[str]) -> Generator[Dict[str, Any], None, Non
     processed_results = []
 
     try:
-        documents = [Document.parse_raw(doc_json) for doc_json in messages]
+        documents = [Document.model_validate_json(doc_json) for doc_json in messages]
         with Pool() as pool:
             for result in pool.imap_unordered(process_document, documents):
                 if result:
@@ -65,6 +66,7 @@ def process_messages(messages: List[str]) -> Generator[Dict[str, Any], None, Non
             "data": messages
         }
         logger.error(error_message)
+        return
     finally:
         end_time = time.time()
         total_time = end_time - start_time

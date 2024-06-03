@@ -119,32 +119,7 @@ def invalid_repo_info():
 # Fake Event Data Fixture
 @pytest.fixture
 def fake_event_data():
-    return {
-        "author": "The Octocat",
-        "message": "Create styles.css and updated README",
-        "date": "2014-02-04T22:38:36+00:00",
-        "url": "https://github.com/octocat/Spoon-Knife/commit/bb4cc8d3b2e14b3af5df699876dd4ff3acd00b7f",
-        "repo_name": "Goood_Event_Data",
-        "commit_id": "bb4cc8d3b2e14b3af5df699876dd4ff3acd00b7f",
-        "files": [
-            {
-                "filename": "README.md",
-                "status": "added",
-                "additions": 9,
-                "deletions": 0,
-                "changes": 9,
-                "patch": "@@ -0,0 +1,9 @@\n+### Well hello there!\n+\n+This repository is meant to provide an example for *forking* a repository on GitHub.\n+\n+Creating a *fork* is producing a personal copy of someone else's project. Forks act as a sort of bridge between the original repository and your personal copy. You can submit *Pull Requests* to help make other people's projects better by offering your changes up to the original project. Forking is at the core of social coding at GitHub.\n+\n+After forking this repository, you can make some changes to the project, and submit [a Pull Request](https://github.com/octocat/Spoon-Knife/pulls) as practice.\n+\n+For some more information on how to fork a repository, [check out our guide, \"Fork a Repo\"](https://help.github.com/articles/fork-a-repo). Thanks! :sparkling_heart:"
-            },
-            {
-                "filename": "styles.css",
-                "status": "added",
-                "additions": 17,
-                "deletions": 0,
-                "changes": 17,
-                "patch": "@@ -0,0 +1,17 @@\n+* {\n+  margin:0px;\n+  padding:0px;\n+}\n+\n+#octocat {\n+  display: block;\n+  width:384px;\n+  margin: 50px auto;\n+}\n+\n+p {\n+  display: block;\n+  width: 400px;\n+  margin: 50px auto;\n+  font: 30px Monaco,\"Courier New\",\"DejaVu Sans Mono\",\"Bitstream Vera Sans Mono\",monospace;\n+}"
-            }
-        ]
-    }
+    return ["{\"page_content\":\"Filename: README, Status: added, Files: @@ -0,0 +1 @@\\n+Hello World!\\n\\\\ No newline at end of file\",\"metadata\":{\"filename\":\"README\",\"status\":\"added\",\"additions\":1,\"deletions\":0,\"changes\":1,\"author\":\"cameronmcefee\",\"date\":\"2011-01-26T19:06:08+00:00\",\"repo_name\":\"Hello-World\",\"commit_url\":\"https://github.com/octocat/Hello-World/commit/553c2077f0edc3d5dc5d17262f6aa498e69d6f8e\",\"id\":\"553c2077f0edc3d5dc5d17262f6aa498e69d6f8e\",\"token_count\":18,\"collection_name\":\"Hello-World\",\"vector_id\":\"553c2077f0edc3d5dc5d17262f6aa498e69d6f8eREADME\"},\"type\":\"Document\"}"]
 
 
 # Generalized Fixture to Create Dataflows
