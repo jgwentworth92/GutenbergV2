@@ -12,7 +12,6 @@ output_topic = config.OUTPUT_TOPIC
 processed_topic = config.PROCESSED_TOPIC
 qdrant_output = config.VECTORDB_TOPIC_NAME
 
-
 def test_kafka_integration(produce_messages, consume_messages):
     # Produce test messages to the input topic
     test_messages = [
@@ -30,6 +29,8 @@ def test_kafka_integration(produce_messages, consume_messages):
             # Ensure the message is a dictionary, convert from JSON if necessary
             if isinstance(msg, str):
                 msg = json.loads(msg)
+            elif isinstance(msg, list) and len(msg) == 1 and isinstance(msg[0], str):
+                msg = json.loads(msg[0])
             assert isinstance(msg, dict), f"Message is not a dictionary: {msg}"
             assert "page_content" in msg, f"Missing 'page_content' in {msg}"
             assert "metadata" in msg, f"Missing 'metadata' in {msg}"
@@ -69,6 +70,8 @@ def test_kafka_integration(produce_messages, consume_messages):
             # Ensure the message is a dictionary, convert from JSON if necessary
             if isinstance(msg, str):
                 msg = json.loads(msg)
+            elif isinstance(msg, list) and len(msg) == 1 and isinstance(msg[0], str):
+                msg = json.loads(msg[0])
             assert isinstance(msg, dict), f"Message is not a dictionary: {msg}"
             assert "id" in msg, f"Missing 'id' in {msg}"
             assert "collection_name" in msg, f"Missing 'collection_name' in {msg}"
