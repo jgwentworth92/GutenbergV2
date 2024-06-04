@@ -75,7 +75,7 @@ def test_kafka_integration(produce_messages, consume_messages):
             assert isinstance(msg, dict), f"Message is not a dictionary: {msg}"
             assert "id" in msg, f"Missing 'id' in {msg}"
             assert "collection_name" in msg, f"Missing 'collection_name' in {msg}"
-            assert msg["collection_name"] == "The Octocat_Hello-World"
+            assert msg["collection_name"] == "Hello-World"
     except TimeoutError as e:
         logger.error(e)
         assert False, str(e)
