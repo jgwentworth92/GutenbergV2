@@ -42,6 +42,12 @@ def test_kafka_integration(produce_messages, consume_messages):
             for field in required_fields:
                 assert field in metadata, f"Missing '{field}' in metadata: {metadata}"
 
+    # Expected IDs (replace with actual expected IDs)
+    expected_ids = [
+        "12a0d0d9-79ac-f57f-495d-f563b68d6ffa",
+        "039e559d-845d-0d8d-b837-02df2c92498b"
+    ]
+
     # Consume messages from the output topic and verify
     try:
         processed_messages = consume_messages(output_topic, num_messages=2)
@@ -65,6 +71,8 @@ def test_kafka_integration(produce_messages, consume_messages):
         final_messages = consume_messages(qdrant_output, num_messages=2)
         logger.info(f"Consumed {len(final_messages)} messages from qdrant output topic.")
         assert len(final_messages) > 0, "No messages consumed from qdrant output topic"
+
+        final_ids = []
         for msg in final_messages:
             logger.info(f"Final processed message: {msg}")
             # Ensure the message is a dictionary, convert from JSON if necessary
@@ -76,6 +84,10 @@ def test_kafka_integration(produce_messages, consume_messages):
             assert "id" in msg, f"Missing 'id' in {msg}"
             assert "collection_name" in msg, f"Missing 'collection_name' in {msg}"
             assert msg["collection_name"] == "Hello-World"
+            final_ids.append(msg["id"][0])  # Extract the ID from the message
+
+        # Verify that the same IDs are produced each time
+        assert set(final_ids) == set(expected_ids), f"IDs do not match. Expected: {expected_ids}, but got: {final_ids}"
     except TimeoutError as e:
         logger.error(e)
         assert False, str(e)
