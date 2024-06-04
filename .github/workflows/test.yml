@@ -32,10 +32,12 @@ jobs:
           echo "CONSUMER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\",\"group.id\": \"your_unique_group_id\",\"auto.offset.reset\": \"earliest\",\"enable.auto.commit\": \"true\"}" >> $GITHUB_ENV
           echo "PRODUCER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\"}" >> $GITHUB_ENV
           echo "PROCESSED_TOPIC=addtovectordb" >> $GITHUB_ENV
+          echo "VECTORDB_TOPIC_NAME="QdrantOutput"" >> $GITHUB_ENV
           echo "MODEL_PROVIDER=fake" >> $GITHUB_ENV
           echo "OPENAI_API_KEY=sk-fakekeyapikey" >> $GITHUB_ENV
           echo "TEMPLATE=${{ secrets.TEMPLATE }}" >> $GITHUB_ENV
           echo "VECTOR_DB_HOST=localhost" >> $GITHUB_ENV
+          echo "LOCAL_LLM_URL=localhost" >> $GITHUB_ENV
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

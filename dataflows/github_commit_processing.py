@@ -23,7 +23,7 @@ ic(f"the stored offset is {OFFSET_STORED}")
 # Input from Kafka topic
 kafka_input = op.input("kafka-in", flow,
                        KafkaSource(brokers=brokers,  topics=[input_topic],
-                                   add_config=consumer_config))
+                                   add_config=producer_config))
 
 # Fetch and emit each commit individually
 processed_commits = op.flat_map("fetch_and_emit_commits", kafka_input,
@@ -36,11 +36,12 @@ serialized_commits = op.map("serialize_commits", processed_commits, orjson.dumps
 kafka_messages = op.map("create_kafka_messages", serialized_commits, lambda x: KafkaSinkMessage(None, x))
 
 # Output serialized data to Kafka
-op.output("kafka-output", kafka_messages, KafkaSink(brokers=brokers, topic=output_topic, add_config=producer_config,))
+op.output("kafka-vector-raw-add", kafka_messages, KafkaSink(brokers=brokers, topic=output_topic, add_config=producer_config,))
+op.output("kafka-output", kafka_messages, KafkaSink(brokers=brokers, topic=config.PROCESSED_TOPIC, add_config=producer_config,))
 
 # Input from Kafka, deserialize each message
 kafka_output_input = op.input("kafka-output-input", flow,
                               KafkaSource(brokers=brokers,  topics=[output_topic],
-                                          add_config=consumer_config))
+                                          add_config=producer_config))
 
-# Inspect the output topic messages
+

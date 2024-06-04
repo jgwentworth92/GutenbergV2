@@ -1,14 +1,13 @@
 from bytewax.dataflow import Dataflow
 import bytewax.operators as op
 from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage
-from confluent_kafka import OFFSET_END
 from icecream import ic
 
 from config.config_setting import config
-from services.message_processing_service import process_message
-from utils.kafka_utils import inspect_output_topic
 import orjson
 from confluent_kafka import OFFSET_STORED
+
+from services.message_processing_service import process_messages
 
 # Application setup
 brokers = [config.BROKERS]
@@ -28,7 +27,7 @@ kafka_input = op.input("kafka-in", flow,
 
 # Process each message
 processed_messages = op.flat_map("process_message", kafka_input,
-                                 lambda msg: process_message(orjson.loads(msg.value)))
+                                 lambda msg: process_messages(orjson.loads(msg.value)))
 
 # Serialize processed documents
 serialized_messages = op.map("serialize_messages", processed_messages, orjson.dumps)
