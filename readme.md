@@ -174,8 +174,8 @@ The Kafka UI is used to import repos to process. It can be accessed at [http://l
 
     ```json
     {
-	\\"owner": "octocat",
-	\\"repo_name": "Hello-World"
+	"owner": "octocat",
+	"repo_name": "Hello-World"
     }
     ```
    Make sure it is a public repo, or it is a repo you currently have access to via the GitHub token in the `.env` file.
