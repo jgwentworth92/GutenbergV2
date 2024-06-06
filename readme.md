@@ -9,19 +9,14 @@ The project aims to develop an automated system capable of grading GitHub reposi
 
 ## Table of Contents
 
-- [Kafka Consumer with Vector Database Additions](#kafka-consumer-with-vector-database-additions)
-  - [Table of Contents](#table-of-contents)
   - [Features](#features)
   - [Project Structure](#project-structure)
+  - [Pre-requisites](#pre-requisites)
   - [Setup and Installation](#setup-and-installation)
+  - [Running](#running)
   - [Configuration](#configuration)
-  - [Running the Services](#running-the-services)
-  - [Running the Dataflows](#running-the-dataflows)
-  - [Creating Recovery Partitions](#creating-recovery-partitions)
+  - [Running the Dataflows Manually](#running-the-dataflows)
   - [Testing](#testing)
-  - [Additional Services](#additional-services)
-    - [Kafka UI](#kafka-ui)
-    - [Qdrant Web UI](#qdrant-web-ui)
 
 ## Features
 
@@ -29,7 +24,7 @@ The project aims to develop an automated system capable of grading GitHub reposi
 - Process commit messages to generate summaries
 - Store results in a vector database
 - Kafka integration for message streaming
-- Configurable to use different chat models and providers (OpenAI, Fake model, LMStudio)
+- Configurable to use different chat models and providers (OpenAI, Fake model, local model)
 - Kafka KRaft instance for broker management
 - Kafka UI for cluster management
 - REST Proxy for interacting with Kafka topics via REST API
@@ -131,18 +126,39 @@ my_project/
    Create a `.env` file in the root directory and add the required environment variables:
     ```env
    GITHUB_TOKEN=your_github_token
-   BROKERS="localhost:9092"
-   INPUT_TOPIC=your_input_topic
-   OUTPUT_TOPIC=your_output_topic
-   PROCESSED_TOPIC=your_processed_topic
-   VECTORDB_TOPIC_NAME=your_vectordb_topic_name
+   BROKERS="kafka_b:9094"
+   INPUT_TOPIC=repos-topic
+   OUTPUT_TOPIC=github-commits-out
+   PROCESSED_TOPIC=addtovectordb
+   VECTORDB_TOPIC_NAME="QdrantOutput"
    CONSUMER_CONFIG={"bootstrap.servers": "kafka_b:9094","auto.offset.reset": "earliest","group.id": "consumer_group","enable.auto.commit": "True"}
    PRODUCER_CONFIG={"bootstrap.servers": "kafka_b:9094"}
    OPENAI_API_KEY=your_openai_api_key
-   MODEL_PROVIDER=openai
-   TEMPLATE=your_template_string
+   MODEL_PROVIDER=fake
+   TEMPLATE = "You are an assistant whose job is to create detailed descriptions of what the provided code files do.Please review the code below and explain its functionality in detail.Code:{text}"
    LOCAL_LLM_URL = "http://[your_ip_address]:1234/v1"
    ```
+   ### Using OpenAI
+   1. **Set up OpenAI API key:**
+   Create an account on OpenAI and get an API key. Add the key to the `.env` file.
+   2. **Set the model provider to OpenAI:**
+      Set the `MODEL_PROVIDER` environment variable to `openai` in the `.env` file.
+   
+   ### Using a Local Model
+
+   The system is known to work with LMStudio, but it should theoretically work with any OpenAI API-compatible system.
+
+   1. **Set up the local model:**
+      Install the LMStudio model server on your local machine. Follow the instructions in the [LMStudio documentation](https://docs.bytewax.com/docs/lmstudio/quickstart) to install the model server. Recommended model: `lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF`
+   2. **Set the model provider to Local:**
+      Set the `MODEL_PROVIDER` environment variable to `lmstudio` in the `.env` file.
+   3. **Set the local model URL:**
+      Set the `LOCAL_LLM_URL` environment variable to the URL of the local model server in the `.env` file. In the case of LMStudio, the URL is `http://[your_ip_address]:1234/v1`. Make sure to use the correct IP address for your computer, as Docker containers cannot access `localhost`.
+
+   ### Using a Fake Model
+
+   1. **Set the model provider to Fake:**
+      Set the `MODEL_PROVIDER` environment variable to `fake` in the `.env` file.
 
 ## Running
 
@@ -170,7 +186,7 @@ The Kafka UI is used to import repos to process. It can be accessed at [http://l
 4. Click on the "Produce Message" button on the top right.
 
 
-5. Enter the GitHub repo URL in the "Message Value" field, with this format:
+5. Enter the GitHub repo owner and URL in the "Value" field, in this format:
 
     ```json
     {
@@ -178,7 +194,7 @@ The Kafka UI is used to import repos to process. It can be accessed at [http://l
 	"repo_name": "Hello-World"
     }
     ```
-   Make sure it is a public repo, or it is a repo you currently have access to via the GitHub token in the `.env` file.
+   Make sure it is a public repo, or it is a repo you currently have access to via the GitHub token in the `.env` file. Leave all other values as default.
 
 
 6. Click on the "Produce Message" button at the bottom of the dialog to add the repo to the topic.
