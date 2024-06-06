@@ -29,8 +29,8 @@ The project aims to develop an automated system capable of grading GitHub reposi
 - Process commit messages to generate summaries
 - Store results in a vector database
 - Kafka integration for message streaming
-- Configurable to use different chat models (OpenAI, Fake model)
-- Kafka Kraft instance for broker management
+- Configurable to use different chat models and providers (OpenAI, Fake model, LMStudio)
+- Kafka KRaft instance for broker management
 - Kafka UI for cluster management
 - REST Proxy for interacting with Kafka topics via REST API
 - Schema Registry for managing Kafka message schemas
@@ -69,26 +69,65 @@ my_project/
 └── requirements.txt
 ```
 
+## Pre-requisites
+
+- Python
+- Git
+- Docker
+
 ## Setup and Installation
 
 1. **Clone the repository:**
    ```sh
    git clone https://github.com/jgwentworth92/GutenbergV2.git
-   cd your-repo
+   cd GutenbergV2
    ```
 
-2. **Create and activate a virtual environment:**
-   ```sh
-   python -m venv venv
-   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-   ```
+2. **Create and activate a virtual environment according to your operating system:**
+
+   1. **On Linux:**
+      ```sh
+      python -m venv venv
+      source venv/bin/activate  
+      ```
+   
+   2. **On Windows:**
+      ```sh
+      python -m venv venv
+      venv\Scripts\activate
+      ```
+
 
 3. **Install the dependencies:**
    ```sh
    pip install -r requirements.txt
    ```
 
-4. **Set up your environment variables:**
+4. **Create the recovery partitions**:
+
+    Create the necessary directories for the recovery partitions:
+
+   ```sh
+   mkdir recovery
+   cd recovery
+   mkdir github_listener
+   mkdir commit_summary_service
+   mkdir add_qdrant_service
+   cd ..
+   ```
+
+    Set up recovery partitions for each microservice:
+
+   ```sh
+   python -m bytewax.recovery recovery/github_listener
+   python -m bytewax.recovery recovery/commit_summary_service
+   python -m bytewax.recovery recovery/add_qdrant_service
+   ```
+
+    This ensures that Bytewax can recover from failures and continue processing. 
+
+
+5. **Set up your environment variables:**
    Create a `.env` file in the root directory and add the required environment variables:
     ```env
    GITHUB_TOKEN=your_github_token
@@ -105,11 +144,7 @@ my_project/
    LOCAL_LLM_URL = "http://[your_ip_address]:1234/v1"
    ```
 
-## Configuration
-
-The application configuration is managed using Pydantic settings. Modify the `config/config_setting.py` file to update the configuration settings.
-
-## Running the Services
+## Running
 
 To start all services, navigate to the root directory of your project where the `docker-compose.yml` file is located and run the following command:
 
@@ -117,11 +152,49 @@ To start all services, navigate to the root directory of your project where the 
 docker-compose up --build
 ```
 
-This will build and start all the services defined in your `docker-compose.yml` file.
+This will build and start all the services required.
 
-## Running the Dataflows
+The Kafka UI is used to import repos to process. It can be accessed at [http://localhost:8080/](http://localhost:8080/). 
 
-To run the dataflows, use the following command format, replacing `(filename)` with the actual filename of the dataflow script without the `.py` extension:
+### In order to add a repo:
+
+1. Open the Web UI
+
+
+2. Select "Topics" from the left-hand menu. If the menu is hidden, click on the hamburger icon on the top left.
+
+
+3. Click on "repos-topic" from the list of topics.
+
+
+4. Click on the "Produce Message" button on the top right.
+
+
+5. Enter the GitHub repo URL in the "Message Value" field, with this format:
+
+    ```json
+    {
+	\\"owner": "octocat",
+	\\"repo_name": "Hello-World"
+    }
+    ```
+   Make sure it is a public repo, or it is a repo you currently have access to via the GitHub token in the `.env` file.
+
+
+6. Click on the "Produce Message" button at the bottom of the dialog to add the repo to the topic.
+
+The system will automatically process the repo and generate summaries using the LLM, via the provider specified in the `.env` file.
+
+The Qdrant Web UI is used to see the generated summaries. It can be accessed at [http://localhost:6333/dashboard#/collections](http://localhost:6333/dashboard#/collections).
+
+## Configuration
+
+The application configuration is managed using Pydantic settings. Modify the `config/config_setting.py` file to update the configuration settings.
+
+
+## Running the Dataflows Manually
+
+The system runs the dataflows automatically. To run the dataflows manually, use the following command format, replacing `(filename)` with the actual filename of the dataflow script without the `.py` extension:
 
 ```sh
 python -m bytewax.run -w3 dataflows.(filename)
@@ -145,34 +218,6 @@ And to run the add to Qdrant service dataflow:
 python -m bytewax.run -w3 dataflows.add_qdrant_service
 ```
 
-## Creating Recovery Partitions
-
-Before creating recovery partitions, ensure that the necessary directories exist. If not, create them:
-
-```sh
-mkdir -p recovery/github_listener
-mkdir -p recovery/commit_summary_service
-mkdir -p recovery/add_qdrant_service
-```
-
-To set up recovery partitions for each microservice, run the following commands. This ensures that Bytewax can recover from failures and continue processing.
-
-1. **GitHub Commit Processing Recovery Partition:**
-   ```sh
-   python -m bytewax.recovery recovery/github_listener 4
-   ```
-
-2. **Commit Summary Service Recovery Partition:**
-   ```sh
-   python -m bytewax.recovery recovery/commit_summary_service 4
-   ```
-
-3. **Add to Qdrant Service Recovery Partition:**
-   ```sh
-   python -m bytewax.recovery recovery/add_qdrant_service 4
-   ```
-
-These commands should be run from the root directory of your project.
 
 ## Testing
 
@@ -183,13 +228,3 @@ pytest .
 ```
 
 The tests are located in the `tests/` directory and cover the GitHub service, message processing service, and dataflows.
-
-## Additional Services
-
-### Kafka UI
-
-Kafka UI is included for cluster management, providing a web interface to manage and monitor Kafka clusters. Kafka UI can be accessed at [http://localhost:8080/](http://localhost:8080/). When adding a cluster, use `kafka_b` for the host and port `9094`.
-
-### Qdrant Web UI
-
-Qdrant Web UI is included to manage the vector database. Qdrant Web UI can be accessed at [http://localhost:6333/dashboard#/collections](http://localhost:6333/dashboard#/collections).
