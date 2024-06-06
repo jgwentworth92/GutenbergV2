@@ -149,7 +149,7 @@ my_project/
    The system is known to work with LMStudio, but it should theoretically work with any OpenAI API-compatible system.
 
    1. **Set up the local model:**
-      Install the LMStudio model server on your local machine. Follow the instructions in the [LMStudio documentation](https://docs.bytewax.com/docs/lmstudio/quickstart) to install the model server. Recommended model: `lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF`
+      Install LMStudio (or another backend) and turn on the model server. Recommended model: `lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF`
    2. **Set the model provider to Local:**
       Set the `MODEL_PROVIDER` environment variable to `lmstudio` in the `.env` file.
    3. **Set the local model URL:**
