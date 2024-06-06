@@ -36,8 +36,8 @@ serialized_commits = op.map("serialize_commits", processed_commits, orjson.dumps
 kafka_messages = op.map("create_kafka_messages", serialized_commits, lambda x: KafkaSinkMessage(None, x))
 
 # Output serialized data to Kafka
-op.output("kafka-vector-raw-add", kafka_messages, KafkaSink(brokers=brokers, topic=output_topic, add_config=producer_config,))
-op.output("kafka-output", kafka_messages, KafkaSink(brokers=brokers, topic=config.PROCESSED_TOPIC, add_config=producer_config,))
+op.output("kafka-vector-raw-add", kafka_messages, KafkaSink(brokers=brokers, topic=output_topic, add_config=producer_config,)) # to vctor db
+op.output("kafka-output", kafka_messages, KafkaSink(brokers=brokers, topic=config.PROCESSED_TOPIC, add_config=producer_config,)) # to local llm
 
 # Input from Kafka, deserialize each message
 kafka_output_input = op.input("kafka-output-input", flow,
