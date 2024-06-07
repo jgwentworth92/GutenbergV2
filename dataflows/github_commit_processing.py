@@ -39,9 +39,6 @@ kafka_messages = op.map("create_kafka_messages", serialized_commits, lambda x: K
 op.output("kafka-vector-raw-add", kafka_messages, KafkaSink(brokers=brokers, topic=output_topic, add_config=producer_config,))
 op.output("kafka-output", kafka_messages, KafkaSink(brokers=brokers, topic=config.PROCESSED_TOPIC, add_config=producer_config,))
 
-# Input from Kafka, deserialize each message
-kafka_output_input = op.input("kafka-output-input", flow,
-                              KafkaSource(brokers=brokers,  topics=[output_topic],
-                                          add_config=producer_config))
+
 
 
