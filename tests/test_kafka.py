@@ -45,8 +45,11 @@ def test_kafka_integration(produce_messages, consume_messages):
     # Expected IDs (replace with actual expected IDs)
     expected_ids = [
         "12a0d0d9-79ac-f57f-495d-f563b68d6ffa",
-        "039e559d-845d-0d8d-b837-02df2c92498b"
+        "039e559d-845d-0d8d-b837-02df2c92498b",
+        "8996e7f9-4ea3-1fd2-3d59-55d74de62da4"
     ]
+
+
 
     # Consume messages from the output topic and verify
     try:
