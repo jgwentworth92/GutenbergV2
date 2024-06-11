@@ -11,8 +11,8 @@ The project aims to develop an automated system capable of grading GitHub reposi
 
   - [Features](#features)
   - [Project Structure](#project-structure)
-  - [Pre-requisites](#pre-requisites)
-  - [Setup and Installation](#setup-and-installation)
+  - [Prerequisites](#pre-requisites)
+  - [Installation](#setup-and-installation)
   - [Running](#running)
   - [Configuration](#configuration)
   - [Running the Dataflows Manually](#running-the-dataflows)
@@ -64,13 +64,15 @@ my_project/
 └── requirements.txt
 ```
 
-## Pre-requisites
+<!-- GETTING STARTED -->
+
+## Prerequisites
 
 - Python
 - Git
 - Docker
 
-## Setup and Installation
+## Installation
 
 1. **Clone the repository:**
    ```sh
@@ -114,9 +116,9 @@ my_project/
     Set up recovery partitions for each microservice:
 
    ```sh
-   python -m bytewax.recovery recovery/github_listener
-   python -m bytewax.recovery recovery/commit_summary_service
-   python -m bytewax.recovery recovery/add_qdrant_service
+   python -m bytewax.recovery recovery/github_listener 4
+   python -m bytewax.recovery recovery/commit_summary_service 4
+   python -m bytewax.recovery recovery/add_qdrant_service 4
    ```
 
     This ensures that Bytewax can recover from failures and continue processing. 
@@ -160,7 +162,7 @@ my_project/
    1. **Set the model provider to Fake:**
       Set the `MODEL_PROVIDER` environment variable to `fake` in the `.env` file.
 
-## Running
+## Usage
 
 To start all services, navigate to the root directory of your project where the `docker-compose.yml` file is located and run the following command:
 
