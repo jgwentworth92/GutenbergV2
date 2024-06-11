@@ -1,7 +1,7 @@
-import pytest
 from config.config_setting import config
 import logging
 import json
+import pytest
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -12,7 +12,16 @@ output_topic = config.OUTPUT_TOPIC
 processed_topic = config.PROCESSED_TOPIC
 qdrant_output = config.VECTORDB_TOPIC_NAME
 
-def test_kafka_integration(produce_messages, consume_messages):
+@pytest.mark.usefixtures("setup_bytewax_dataflows")
+def test_kafka_integration(setup_bytewax_dataflows, produce_messages, consume_messages):
+    # Start the specified Bytewax dataflows
+    dataflows_to_run = [
+        "github_commit_processing",
+        "commit_summary_service",
+        "add_qdrant_service"
+    ]
+    setup_bytewax_dataflows(dataflows_to_run)
+
     # Produce test messages to the input topic
     test_messages = [
         {"owner": "octocat", "repo_name": "Hello-World"},
@@ -48,8 +57,6 @@ def test_kafka_integration(produce_messages, consume_messages):
         "039e559d-845d-0d8d-b837-02df2c92498b",
         "8996e7f9-4ea3-1fd2-3d59-55d74de62da4"
     ]
-
-
 
     # Consume messages from the output topic and verify
     try:
