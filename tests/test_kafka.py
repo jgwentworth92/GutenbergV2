@@ -103,7 +103,7 @@ def test_kafka_pdf_processing_integration(produce_messages, consume_messages, se
     # Produce test messages to the input topic
     test_messages = [
         {
-            "pdf_url": "https://arxiv.org/pdf/2103.15348",
+            "pdf_url": "https://unec.edu.az/application/uploads/2014/12/pdf-sample.pdf",
             "collection_name": "pdftest"
         }
     ]
