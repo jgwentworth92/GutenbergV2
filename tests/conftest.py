@@ -18,9 +18,6 @@ logger = logging.getLogger(__name__)
 
 # Kafka configuration for the test
 kafka_brokers = config.BROKERS
-input_topic = config.INPUT_TOPIC
-output_topic = config.OUTPUT_TOPIC
-processed_topic = config.PROCESSED_TOPIC
 
 
 @pytest.fixture(scope="module")
@@ -53,7 +50,35 @@ def setup_bytewax_dataflows():
     qdrant_service.wait()
     logger.info("Bytewax dataflows terminated.")
 
+@pytest.fixture(scope="module")
+def setup_pdf_dataflows():
+    logger.info("Starting Bytewax dataflows...")
+    # Start the Bytewax dataflows
+    input_processing = subprocess.Popen(
+        ["python", "-m", "bytewax.run", "-w3", "dataflows.pdfProcessing"], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    commit_summary_service = subprocess.Popen(
+        ["python", "-m", "bytewax.run", "-w3", "dataflows.commit_summary_service"], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    qdrant_service = subprocess.Popen(
+        ["python", "-m", "bytewax.run", "-w3", "dataflows.add_qdrant_service"], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
 
+    # Give some time for the services to start
+    time.sleep(10)
+    logger.info("Bytewax dataflows started.")
+
+    yield
+
+    logger.info("Terminating Bytewax dataflows...")
+    # Terminate the Bytewax dataflows
+    input_processing.terminate()
+    commit_summary_service.terminate()
+    qdrant_service.terminate()
+    input_processing.wait()
+    commit_summary_service.wait()
+    qdrant_service.wait()
+    logger.info("Bytewax dataflows terminated.")
 @pytest.fixture
 def produce_messages():
     def _produce_messages(topic, messages):
