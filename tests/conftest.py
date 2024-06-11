@@ -25,30 +25,33 @@ processed_topic = config.PROCESSED_TOPIC
 
 @pytest.fixture(scope="module")
 def setup_bytewax_dataflows():
-    def _setup_bytewax_dataflows(dataflow_names):
-        logger.info("Starting Bytewax dataflows...")
-        processes = []
+    logger.info("Starting Bytewax dataflows...")
+    # Start the Bytewax dataflows
+    github_commit_processing = subprocess.Popen(
+        ["python", "-m", "bytewax.run", "-w3", "dataflows.github_commit_processing"], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    commit_summary_service = subprocess.Popen(
+        ["python", "-m", "bytewax.run", "-w3", "dataflows.commit_summary_service"], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    qdrant_service = subprocess.Popen(
+        ["python", "-m", "bytewax.run", "-w3", "dataflows.add_qdrant_service"], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
 
-        for dataflow_name in dataflow_names:
-            process = subprocess.Popen(
-                ["python", "-m", "bytewax.run", "-w3", f"dataflows.{dataflow_name}"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE)
-            processes.append(process)
+    # Give some time for the services to start
+    time.sleep(10)
+    logger.info("Bytewax dataflows started.")
 
-        # Give some time for the services to start
-        time.sleep(10)
-        logger.info("Bytewax dataflows started.")
+    yield
 
-        yield
-
-        logger.info("Terminating Bytewax dataflows...")
-        for process in processes:
-            process.terminate()
-            process.wait()
-        logger.info("Bytewax dataflows terminated.")
-
-    return _setup_bytewax_dataflows
+    logger.info("Terminating Bytewax dataflows...")
+    # Terminate the Bytewax dataflows
+    github_commit_processing.terminate()
+    commit_summary_service.terminate()
+    qdrant_service.terminate()
+    github_commit_processing.wait()
+    commit_summary_service.wait()
+    qdrant_service.wait()
+    logger.info("Bytewax dataflows terminated.")
 
 
 @pytest.fixture
