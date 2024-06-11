@@ -108,7 +108,7 @@ def test_kafka_pdf_processing_integration(produce_messages, consume_messages, se
         }
     ]
     logger.info("Starting Kafka PDF integration test...")
-    produce_messages("pdfinput", test_messages)
+    produce_messages(pdfinput, test_messages)
     logger.info("Test messages produced to pdf input topic.")
 
     def verify_message_structure(messages):
@@ -139,7 +139,7 @@ def test_kafka_pdf_processing_integration(produce_messages, consume_messages, se
 
     # Consume messages from the output topic and verify
     try:
-        processed_messages = consume_messages("output_topic", num_messages=2)
+        processed_messages = consume_messages(output_topic, num_messages=2)
         logger.info(f"Consumed {len(processed_messages)} messages from output topic.")
         verify_message_structure(processed_messages)
     except TimeoutError as e:
@@ -148,7 +148,7 @@ def test_kafka_pdf_processing_integration(produce_messages, consume_messages, se
 
     # Consume messages from the processed topic and verify
     try:
-        processed_messages = consume_messages("processed_topic", num_messages=2)
+        processed_messages = consume_messages(processed_topic, num_messages=2)
         logger.info(f"Consumed {len(processed_messages)} messages from processed topic.")
         verify_message_structure(processed_messages)
     except TimeoutError as e:
@@ -157,7 +157,7 @@ def test_kafka_pdf_processing_integration(produce_messages, consume_messages, se
 
     # Consume messages from the Qdrant output topic and verify
     try:
-        final_messages = consume_messages("qdrant_output", num_messages=2)
+        final_messages = consume_messages(qdrant_output, num_messages=2)
         logger.info(f"Consumed {len(final_messages)} messages from qdrant output topic.")
         assert len(final_messages) > 0, "No messages consumed from qdrant output topic"
 
