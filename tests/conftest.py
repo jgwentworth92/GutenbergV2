@@ -103,7 +103,7 @@ def consume_messages():
         consumer_config = {
             "bootstrap.servers": kafka_brokers,
             "group.id": "test-group",
-            "auto.offset.reset": "earliest"
+            "auto.offset.reset": "latest"
         }
         consumer = Consumer(consumer_config)
         consumer.subscribe([topic])
