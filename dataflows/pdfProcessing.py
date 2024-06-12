@@ -40,7 +40,8 @@ keyless_docs = op.map("remove_key", batched_docs, lambda x: (None, x[1]))
 
 # Create KafkaSinkMessages for each serialized document data
 kafka_messages = op.map("create_kafka_messages", keyless_docs, lambda x: KafkaSinkMessage(None, orjson.dumps(x[1])))
+kafka_message = op.map("create_kafka_messages", serialized_docs, lambda x: KafkaSinkMessage(None, x))
 
 # Output serialized data to Kafka
-op.output("kafka-raw-pdf-add", kafka_messages, KafkaSink(brokers=brokers, topic=config.PROCESSED_TOPIC, add_config=producer_config))
+op.output("kafka-raw-pdf-add", kafka_message, KafkaSink(brokers=brokers, topic=config.PROCESSED_TOPIC, add_config=producer_config))
 op.output("kafka-output", kafka_messages, KafkaSink(brokers=brokers, topic=config.OUTPUT_TOPIC, add_config=producer_config)) # to local llm
