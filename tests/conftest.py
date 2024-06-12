@@ -133,10 +133,10 @@ def produce_messages():
 
 @pytest.fixture
 def consume_messages():
-    def _consume_messages(topic, num_messages, group_id, timeout=60):
+    def _consume_messages(topic, num_messages, timeout=60):
         consumer_config = {
             "bootstrap.servers": kafka_brokers,
-            "group.id": group_id,
+            "group.id": f"test-group-{topic}",
             "auto.offset.reset": "earliest"
         }
         consumer = Consumer(consumer_config)
