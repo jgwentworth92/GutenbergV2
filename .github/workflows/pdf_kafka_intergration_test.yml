@@ -21,18 +21,18 @@ jobs:
         uses: spicyparrot/kafka-kraft-action@v1.1.0
         with:
           kafka-version: "3.7.0"
-          kafka-topics: "repos-topic,1,github-commits-out,1,addtovectordb,1,QdrantOutput,1,pdfInput,1"
+          kafka-topics: "repos-topic1,1,github-commits-out1,1,addtovectordb1,1,QdrantOutput1,1,pdfInput1,1"
 
       - name: Set environment variables
         run: |
           echo "GITHUB_TOKEN=${{ secrets.TOKEN_GITHUB }}" >> $GITHUB_ENV
           echo "BROKERS=${{ env.kafka_runner_address }}:9093" >> $GITHUB_ENV
-          echo "INPUT_TOPIC=repos-topic" >> $GITHUB_ENV
-          echo "OUTPUT_TOPIC=github-commits-out" >> $GITHUB_ENV
+          echo "INPUT_TOPIC=repos-topic1" >> $GITHUB_ENV
+          echo "OUTPUT_TOPIC=github-commits-out1" >> $GITHUB_ENV
           echo "CONSUMER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\",\"group.id\": \"your_unique_group_id\",\"auto.offset.reset\": \"latest\",\"enable.auto.commit\": \"true\"}" >> $GITHUB_ENV
           echo "PRODUCER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\"}" >> $GITHUB_ENV
-          echo "PROCESSED_TOPIC=addtovectordb" >> $GITHUB_ENV
-          echo "VECTORDB_TOPIC_NAME="QdrantOutput"" >> $GITHUB_ENV
+          echo "PROCESSED_TOPIC=addtovectordb1" >> $GITHUB_ENV
+          echo "VECTORDB_TOPIC_NAME="QdrantOutput1"" >> $GITHUB_ENV
           echo "MODEL_PROVIDER=fake" >> $GITHUB_ENV
           echo "OPENAI_API_KEY=sk-fakekeyapikey" >> $GITHUB_ENV
           echo "TEMPLATE=${{ secrets.TEMPLATE }}" >> $GITHUB_ENV
