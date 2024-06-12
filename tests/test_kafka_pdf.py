@@ -14,7 +14,7 @@ qdrant_output = config.VECTORDB_TOPIC_NAME
 
 
 
-def test_kafka_pdf_processing_integration(produce_messages, consume_messages, setup_pdf_dataflows):
+def test_kafka_pdf_processing_integration(produce_messages, consume_messages, setup_bytewax_dataflows):
     test_messages = [{
         "pdf_url": "https://unec.edu.az/application/uploads/2014/12/pdf-sample.pdf",
         "collection_name": "pdftest"

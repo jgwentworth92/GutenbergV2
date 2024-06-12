@@ -29,7 +29,7 @@ jobs:
           echo "BROKERS=${{ env.kafka_runner_address }}:9093" >> $GITHUB_ENV
           echo "INPUT_TOPIC=repos-topic" >> $GITHUB_ENV
           echo "OUTPUT_TOPIC=github-commits-out" >> $GITHUB_ENV
-          echo "CONSUMER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\",\"group.id\": \"your_unique_group_id\",\"auto.offset.reset\": \"latest\",\"enable.auto.commit\": \"true\"}" >> $GITHUB_ENV
+          echo "CONSUMER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\",\"group.id\": \"your_unique_group_id\",\"auto.offset.reset\": \"earliest\",\"enable.auto.commit\": \"true\"}" >> $GITHUB_ENV
           echo "PRODUCER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\"}" >> $GITHUB_ENV
           echo "PROCESSED_TOPIC=addtovectordb" >> $GITHUB_ENV
           echo "VECTORDB_TOPIC_NAME="QdrantOutput"" >> $GITHUB_ENV
