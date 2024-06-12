@@ -86,31 +86,24 @@ def produce_messages():
             "bootstrap.servers": kafka_brokers,
         }
         producer = Producer(producer_config)
-
-        logger.info(f"Producing {len(messages)} messages to topic '{topic}'...")
         for message in messages:
             producer.produce(topic, orjson.dumps(message).decode('utf-8'))
-
         producer.flush()
-        logger.info("Messages produced.")
-
     return _produce_messages
-
 
 @pytest.fixture
 def consume_messages():
-    def _consume_messages(topic, num_messages, timeout=60):
+    def _consume_messages(topic, num_messages, group_id, timeout=60):
         consumer_config = {
             "bootstrap.servers": kafka_brokers,
-            "group.id": "test-group",
-            "auto.offset.reset": "latest"
+            "group.id": group_id,
+            "auto.offset.reset": "earliest"
         }
         consumer = Consumer(consumer_config)
         consumer.subscribe([topic])
 
         messages = []
         start_time = time.time()
-        logger.info(f"Consuming messages from topic '{topic}'...")
         while len(messages) < num_messages and (time.time() - start_time) < timeout:
             msg = consumer.poll(timeout=1.0)
             if msg is None:
@@ -120,9 +113,7 @@ def consume_messages():
             messages.append(orjson.loads(msg.value().decode('utf-8')))
 
         consumer.close()
-        logger.info(f"Consumed {len(messages)} messages.")
         return messages
-
     return _consume_messages
 
 
