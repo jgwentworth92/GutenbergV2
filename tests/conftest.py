@@ -5,7 +5,7 @@ from bytewax.dataflow import Dataflow
 import bytewax.operators as op
 from bytewax.testing import TestingSource, TestingSink, run_main
 import logging
-
+from typing import Dict, Any
 from confluent_kafka.admin import AdminClient, NewTopic
 from confluent_kafka import Producer, Consumer, KafkaException
 from config.config_setting import get_config
@@ -133,10 +133,10 @@ def produce_messages():
 
 @pytest.fixture
 def consume_messages():
-    def _consume_messages(topic, num_messages, timeout=60):
+    def _consume_messages(topic, num_messages,  timeout=60):
         consumer_config = {
             "bootstrap.servers": kafka_brokers,
-            "group.id": f"test-group-{topic}",
+            "group.id":"your_unique_group_id",
             "auto.offset.reset": "earliest"
         }
         consumer = Consumer(consumer_config)
