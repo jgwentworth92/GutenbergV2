@@ -6,7 +6,6 @@ import bytewax.operators as op
 from bytewax.testing import TestingSource, TestingSink, run_main
 import logging
 from typing import Dict, Any
-from confluent_kafka.admin import AdminClient, NewTopic
 from confluent_kafka import Producer, Consumer, KafkaException
 from config.config_setting import get_config
 import subprocess
@@ -20,46 +19,7 @@ logger = logging.getLogger(__name__)
 # Kafka configuration for the test
 kafka_brokers = config.BROKERS
 
-@pytest.fixture(scope="module")
-def kafka_admin():
-    admin_client = AdminClient({'bootstrap.servers': kafka_brokers})
-    return admin_client
 
-@pytest.fixture
-def manage_kafka_topics(kafka_admin):
-    topics = [config.INPUT_TOPIC, config.OUTPUT_TOPIC, config.PROCESSED_TOPIC, config.VECTORDB_TOPIC_NAME, config.PDF_INPUT]
-
-    # Delete topics if they exist
-    def delete_topics():
-        fs = kafka_admin.delete_topics(topics, operation_timeout=30)
-        for topic, f in fs.items():
-            try:
-                f.result()
-                logger.info(f"Topic {topic} deleted")
-            except Exception as e:
-                logger.warning(f"Failed to delete topic {topic}: {e}")
-
-    # Create topics
-    def create_topics():
-        new_topics = [NewTopic(topic, num_partitions=1, replication_factor=1) for topic in topics]
-        fs = kafka_admin.create_topics(new_topics, operation_timeout=30)
-        for topic, f in fs.items():
-            try:
-                f.result()
-                logger.info(f"Topic {topic} created")
-            except Exception as e:
-                logger.warning(f"Failed to create topic {topic}: {e}")
-
-    # Delete and recreate topics before each test
-    delete_topics()
-    time.sleep(2)  # Wait for Kafka to settle
-    create_topics()
-    time.sleep(2)  # Wait for Kafka to settle
-
-    yield
-
-    # Optionally, delete topics after tests
-    delete_topics()
 @pytest.fixture(scope="module")
 def setup_bytewax_dataflows():
     logger.info("Starting Bytewax dataflows...")
@@ -126,24 +86,31 @@ def produce_messages():
             "bootstrap.servers": kafka_brokers,
         }
         producer = Producer(producer_config)
+
+        logger.info(f"Producing {len(messages)} messages to topic '{topic}'...")
         for message in messages:
             producer.produce(topic, orjson.dumps(message).decode('utf-8'))
+
         producer.flush()
+        logger.info("Messages produced.")
+
     return _produce_messages
+
 
 @pytest.fixture
 def consume_messages():
-    def _consume_messages(topic, num_messages,  timeout=60):
+    def _consume_messages(topic, num_messages, timeout=60):
         consumer_config = {
             "bootstrap.servers": kafka_brokers,
-            "group.id":"your_unique_group_id",
-            "auto.offset.reset": "earliest"
+            "group.id": "test-group",
+            "auto.offset.reset": "latest"
         }
         consumer = Consumer(consumer_config)
         consumer.subscribe([topic])
 
         messages = []
         start_time = time.time()
+        logger.info(f"Consuming messages from topic '{topic}'...")
         while len(messages) < num_messages and (time.time() - start_time) < timeout:
             msg = consumer.poll(timeout=1.0)
             if msg is None:
@@ -153,7 +120,9 @@ def consume_messages():
             messages.append(orjson.loads(msg.value().decode('utf-8')))
 
         consumer.close()
+        logger.info(f"Consumed {len(messages)} messages.")
         return messages
+
     return _consume_messages
 
 
