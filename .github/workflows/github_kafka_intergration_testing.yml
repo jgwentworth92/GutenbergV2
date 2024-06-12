@@ -50,4 +50,4 @@ jobs:
           pip install -r requirements.txt
 
       - name: 🧪 Run Intergration Tests
-        run: pytest tests/test_kafka_pdf.py
+        run: pytest tests/test_kafka_github.py
