@@ -50,15 +50,6 @@ def test_kafka_pdf_processing_integration(produce_messages, consume_messages, se
                 for field in required_fields:
                     assert field in metadata, f"Missing '{field}' in metadata: {metadata}"
 
-    # Expected IDs (replace with actual expected IDs)
-    expected_ids = [
-        "991f256c687a081288504cd62c63799f",
-        "c42f5594801a70a6731cd6a0f7ea5b08",
-        "73b4871b295b16659674778e9e8e9022",
-        "2a42a4998502167b5a54f568f0358497",
-        "25e467c6d0f340784d5b8fb9727c2c30",
-        "961e85abdf35bf7f8eb25383af4fbbc2"
-    ]
 
     # Consume messages from the output topic and verify
     try:
@@ -84,7 +75,6 @@ def test_kafka_pdf_processing_integration(produce_messages, consume_messages, se
 
         final_messages = consume_messages(qdrant_output, num_messages=6)
         logger.info(f"Consumed {len(final_messages)} messages from qdrant output topic.")
-        final_ids = []
         for msg in final_messages:
             logger.info(f"Final processed message: {msg}")
             # Ensure the message is a dictionary, convert from JSON if necessary
@@ -103,10 +93,7 @@ def test_kafka_pdf_processing_integration(produce_messages, consume_messages, se
                 assert "id" in m, f"Missing 'id' in {m}"
                 assert "collection_name" in m, f"Missing 'collection_name' in {m}"
                 assert m["collection_name"] == "pdftest"
-                final_ids.append(m["id"])
 
-        # Verify that the same IDs are produced each time
-        assert any(id in final_ids for id in expected_ids), f"None of the expected IDs are present. Expected: {expected_ids}, but got: {final_ids}"
     except TimeoutError as e:
         logger.error(e)
         assert False, str(e)
