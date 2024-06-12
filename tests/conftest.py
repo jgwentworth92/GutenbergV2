@@ -5,7 +5,8 @@ from bytewax.dataflow import Dataflow
 import bytewax.operators as op
 from bytewax.testing import TestingSource, TestingSink, run_main
 import logging
-from typing import Dict, Any
+
+from confluent_kafka.admin import AdminClient, NewTopic
 from confluent_kafka import Producer, Consumer, KafkaException
 from config.config_setting import get_config
 import subprocess
@@ -19,7 +20,46 @@ logger = logging.getLogger(__name__)
 # Kafka configuration for the test
 kafka_brokers = config.BROKERS
 
+@pytest.fixture(scope="module")
+def kafka_admin():
+    admin_client = AdminClient({'bootstrap.servers': kafka_brokers})
+    return admin_client
 
+@pytest.fixture
+def manage_kafka_topics(kafka_admin):
+    topics = [config.INPUT_TOPIC, config.OUTPUT_TOPIC, config.PROCESSED_TOPIC, config.VECTORDB_TOPIC_NAME, config.PDF_INPUT]
+
+    # Delete topics if they exist
+    def delete_topics():
+        fs = kafka_admin.delete_topics(topics, operation_timeout=30)
+        for topic, f in fs.items():
+            try:
+                f.result()
+                logger.info(f"Topic {topic} deleted")
+            except Exception as e:
+                logger.warning(f"Failed to delete topic {topic}: {e}")
+
+    # Create topics
+    def create_topics():
+        new_topics = [NewTopic(topic, num_partitions=1, replication_factor=1) for topic in topics]
+        fs = kafka_admin.create_topics(new_topics, operation_timeout=30)
+        for topic, f in fs.items():
+            try:
+                f.result()
+                logger.info(f"Topic {topic} created")
+            except Exception as e:
+                logger.warning(f"Failed to create topic {topic}: {e}")
+
+    # Delete and recreate topics before each test
+    delete_topics()
+    time.sleep(2)  # Wait for Kafka to settle
+    create_topics()
+    time.sleep(2)  # Wait for Kafka to settle
+
+    yield
+
+    # Optionally, delete topics after tests
+    delete_topics()
 @pytest.fixture(scope="module")
 def setup_bytewax_dataflows():
     logger.info("Starting Bytewax dataflows...")
