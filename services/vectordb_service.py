@@ -1,15 +1,12 @@
+import hashlib
+import uuid
 from typing import Generator, Dict, Any, List
-from icecream import ic
-from pydantic import BaseModel, Field
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.embeddings import FakeEmbeddings
+
 from config.config_setting import config
 from models.document import Document
 from utils.get_qdrant import get_qdrant_vector_store
 from utils.model_utils import setup_embedding_model
 from utils.setup_logging import get_logger, setup_logging
-import uuid
-import hashlib
 
 setup_logging()
 logging = get_logger(__name__)
@@ -52,7 +49,7 @@ def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any],
 
     try:
         collection_name = documents[0].metadata['collection_name']
-        logging.info(f"Received request for {documents[0].metadata['id']}")
+        logging.info(f"Received request for {documents[0].metadata['collection_name']}")
         embed = setup_embedding_model()
         vectordb = get_qdrant_vector_store(host=config.VECTOR_DB_HOST, port=config.VECTOR_DB_PORT,
                                            embeddings=embed, collection_name=collection_name)
