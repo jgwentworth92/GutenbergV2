@@ -33,7 +33,7 @@ serialized_docs = op.map("serialize_docs", processed_docs, orjson.dumps)
 
 # Key the stream
 keyed_docs = op.key_on("add_key", processed_docs, lambda doc: "pdf_key")
-batched_docs = op.collect("collect_docs", keyed_docs, timeout=timedelta(seconds=10), max_size=100)
+batched_docs = op.collect("collect_docs", keyed_docs, timeout=timedelta(seconds=1), max_size=100)
 
 # Remove the key from the batched documents
 keyless_docs = op.map("remove_key", batched_docs, lambda x: (None, x[1]))
