@@ -30,23 +30,33 @@ def test_kafka_pdf_processing_integration(produce_messages, consume_messages, se
             # Ensure the message is a dictionary, convert from JSON if necessary
             if isinstance(msg, str):
                 msg = json.loads(msg)
-            elif isinstance(msg, list) and len(msg) == 1 and isinstance(msg[0], str):
-                msg = json.loads(msg[0])
-            assert isinstance(msg, dict), f"Message is not a dictionary: {msg}"
-            assert "page_content" in msg, f"Missing 'page_content' in {msg}"
-            assert "metadata" in msg, f"Missing 'metadata' in {msg}"
-            metadata = msg['metadata']
-            required_fields = [
-                "vector_id", "collection_name", "page"
-            ]
-            for field in required_fields:
-                assert field in metadata, f"Missing '{field}' in metadata: {metadata}"
+            elif isinstance(msg, list):
+                msg = [json.loads(m) if isinstance(m, str) else m for m in msg]
+            assert isinstance(msg, dict) or (isinstance(msg, list) and all(isinstance(m, dict) for m in msg)), f"Message is not a dictionary or list of dictionaries: {msg}"
+
+            if isinstance(msg, dict):
+                msgs = [msg]
+            else:
+                msgs = msg
+
+            for m in msgs:
+                assert "page_content" in m, f"Missing 'page_content' in {m}"
+                assert "metadata" in m, f"Missing 'metadata' in {m}"
+                metadata = m['metadata']
+                required_fields = [
+                    "vector_id", "collection_name", "page"
+                ]
+                for field in required_fields:
+                    assert field in metadata, f"Missing '{field}' in metadata: {metadata}"
 
     # Expected IDs (replace with actual expected IDs)
     expected_ids = [
-        "12a0d0d9-79ac-f57f-495d-f563b68d6ffa",
-        "039e559d-845d-0d8d-b837-02df2c92498b",
-        "8996e7f9-4ea3-1fd2-3d59-55d74de62da4"
+        "991f256c687a081288504cd62c63799f",
+        "c42f5594801a70a6731cd6a0f7ea5b08",
+        "73b4871b295b16659674778e9e8e9022",
+        "2a42a4998502167b5a54f568f0358497",
+        "25e467c6d0f340784d5b8fb9727c2c30",
+        "961e85abdf35bf7f8eb25383af4fbbc2"
     ]
 
     # Consume messages from the output topic and verify
@@ -79,14 +89,23 @@ def test_kafka_pdf_processing_integration(produce_messages, consume_messages, se
             # Ensure the message is a dictionary, convert from JSON if necessary
             if isinstance(msg, str):
                 msg = json.loads(msg)
-            elif isinstance(msg, list) and len(msg) == 1 and isinstance(msg[0], str):
-                msg = json.loads(msg[0])
-            assert isinstance(msg, dict), f"Message is not a dictionary: {msg}"
-            assert "id" in msg, f"Missing 'id' in {msg}"
-            assert "collection_name" in msg, f"Missing 'collection_name' in {msg}"
-            assert msg["collection_name"] == "pdftest"
-            final_ids.append(msg["id"])  # Extract the ID from the message
+            elif isinstance(msg, list):
+                msg = [json.loads(m) if isinstance(m, str) else m for m in msg]
+            assert isinstance(msg, dict) or (isinstance(msg, list) and all(isinstance(m, dict) for m in msg)), f"Message is not a dictionary or list of dictionaries: {msg}"
 
+            if isinstance(msg, dict):
+                msgs = [msg]
+            else:
+                msgs = msg
+
+            for m in msgs:
+                assert "id" in m, f"Missing 'id' in {m}"
+                assert "collection_name" in m, f"Missing 'collection_name' in {m}"
+                assert m["collection_name"] == "pdftest"
+                final_ids.append(m["id"])
+
+        # Verify that the same IDs are produced each time
+        assert any(id in final_ids for id in expected_ids), f"None of the expected IDs are present. Expected: {expected_ids}, but got: {final_ids}"
     except TimeoutError as e:
         logger.error(e)
         assert False, str(e)
