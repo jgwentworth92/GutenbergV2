@@ -16,7 +16,6 @@ def test_kafka_integration(produce_messages, consume_messages,setup_bytewax_data
     # Produce test messages to the input topic
     test_messages = [
         {"owner": "octocat", "repo_name": "Hello-World"},
-        {"owner": "octocat", "repo_name": "Spoon-Knife"}
     ]
     logger.info("Starting Kafka integration test...")
     produce_messages(input_topic, test_messages)
@@ -46,14 +45,17 @@ def test_kafka_integration(produce_messages, consume_messages,setup_bytewax_data
     expected_ids = [
         "12a0d0d9-79ac-f57f-495d-f563b68d6ffa",
         "039e559d-845d-0d8d-b837-02df2c92498b",
-        "8996e7f9-4ea3-1fd2-3d59-55d74de62da4"
-    ]
+        "8996e7f9-4ea3-1fd2-3d59-55d74de62da4",
+        '0068cbcb-5978-61bd-7cfa-ffd6482ea12c',
+        '258568c8-01cf-d18f-1301-c30d4c686d74']
+
+
 
 
 
     # Consume messages from the output topic and verify
     try:
-        processed_messages = consume_messages(output_topic, num_messages=2)
+        processed_messages = consume_messages(output_topic, num_messages=6)
         logger.info(f"Consumed {len(processed_messages)} messages from output topic.")
         verify_message_structure(processed_messages)
     except TimeoutError as e:
@@ -62,7 +64,7 @@ def test_kafka_integration(produce_messages, consume_messages,setup_bytewax_data
 
     # Consume messages from the processed topic and verify
     try:
-        processed_messages = consume_messages(processed_topic, num_messages=2)
+        processed_messages = consume_messages(processed_topic, num_messages=6)
         logger.info(f"Consumed {len(processed_messages)} messages from processed topic.")
         verify_message_structure(processed_messages)
     except TimeoutError as e:
@@ -71,7 +73,7 @@ def test_kafka_integration(produce_messages, consume_messages,setup_bytewax_data
 
     # Consume messages from the Qdrant output topic and verify
     try:
-        final_messages = consume_messages(qdrant_output, num_messages=2)
+        final_messages = consume_messages(qdrant_output, num_messages=6)
         logger.info(f"Consumed {len(final_messages)} messages from qdrant output topic.")
         assert len(final_messages) > 0, "No messages consumed from qdrant output topic"
 
