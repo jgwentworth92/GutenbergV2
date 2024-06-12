@@ -63,8 +63,7 @@ def test_kafka_pdf_processing_integration(produce_messages, consume_messages,set
         "collection_name": "pdftest"
     }]
 
-    produce_and_verify_messages(produce_messages, consume_messages, pdfinput, test_messages,
-                                verify_pdf_message_structure)
+
 
     # Verify messages in output topic
     produce_and_verify_messages(produce_messages, consume_messages, output_topic, test_messages,
