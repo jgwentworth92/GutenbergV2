@@ -12,7 +12,7 @@ output_topic = config.OUTPUT_TOPIC
 processed_topic = config.PROCESSED_TOPIC
 qdrant_output = config.VECTORDB_TOPIC_NAME
 
-def test_kafka_github_processing_integration(produce_messages, consume_messages, setup_bytewax_dataflows):
+def test_kafka_github_processing_integration(produce_messages, consume_messages, setup_bytewax_dataflows, manage_kafka_topics):
     test_messages = [{"owner": "octocat", "repo_name": "Hello-World"}]
     produce_messages(input_topic, test_messages)
 
@@ -41,19 +41,19 @@ def test_kafka_github_processing_integration(produce_messages, consume_messages,
     ]
 
     try:
-        processed_messages = consume_messages(output_topic, num_messages=2, group_id="test-group-github-output")
+        processed_messages = consume_messages(output_topic, num_messages=2)
         verify_message_structure(processed_messages)
     except TimeoutError as e:
         assert False, str(e)
 
     try:
-        processed_messages = consume_messages(processed_topic, num_messages=2, group_id="test-group-github-processed")
+        processed_messages = consume_messages(processed_topic, num_messages=2)
         verify_message_structure(processed_messages)
     except TimeoutError as e:
         assert False, str(e)
 
     try:
-        final_messages = consume_messages(qdrant_output, num_messages=2, group_id="test-group-github-qdrant")
+        final_messages = consume_messages(qdrant_output, num_messages=2)
         assert len(final_messages) > 0
 
         final_ids = []
@@ -72,7 +72,7 @@ def test_kafka_github_processing_integration(produce_messages, consume_messages,
     except TimeoutError as e:
         assert False, str(e)
 
-def test_kafka_pdf_processing_integration(produce_messages, consume_messages, setup_pdf_dataflows):
+def test_kafka_pdf_processing_integration(produce_messages, consume_messages, setup_pdf_dataflows, manage_kafka_topics):
     test_messages = [{
         "pdf_url": "https://unec.edu.az/application/uploads/2014/12/pdf-sample.pdf",
         "collection_name": "pdftest"
@@ -95,23 +95,20 @@ def test_kafka_pdf_processing_integration(produce_messages, consume_messages, se
             ]
             for field in required_fields:
                 assert field in metadata
-
-
-
     try:
-        processed_messages = consume_messages(output_topic, num_messages=2, group_id="test-group-pdf-output")
+        processed_messages = consume_messages(output_topic, num_messages=2)
         verify_message_structure(processed_messages)
     except TimeoutError as e:
         assert False, str(e)
 
     try:
-        processed_messages = consume_messages(processed_topic, num_messages=2, group_id="test-group-pdf-processed")
+        processed_messages = consume_messages(processed_topic, num_messages=2)
         verify_message_structure(processed_messages)
     except TimeoutError as e:
         assert False, str(e)
 
     try:
-        final_messages = consume_messages(qdrant_output, num_messages=2, group_id="test-group-pdf-qdrant")
+        final_messages = consume_messages(qdrant_output, num_messages=2)
         assert len(final_messages) > 0
 
         final_ids = []
@@ -125,5 +122,6 @@ def test_kafka_pdf_processing_integration(produce_messages, consume_messages, se
             assert "collection_name" in msg
             assert msg["collection_name"] == "pdftest"
             final_ids.append(msg["id"])
+
     except TimeoutError as e:
         assert False, str(e)
