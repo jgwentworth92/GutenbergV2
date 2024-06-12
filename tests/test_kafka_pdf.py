@@ -56,6 +56,9 @@ def test_kafka_pdf_processing_integration(produce_messages, consume_messages, se
         processed_messages = consume_messages(output_topic, num_messages=6)
         logger.info(f"Consumed {len(processed_messages)} messages from output topic.")
         verify_message_structure(processed_messages)
+        final_messages = consume_messages(qdrant_output, num_messages=6)
+        logger.info(f"Consumed {len(final_messages)} messages from qdrant output topic.")
+
     except TimeoutError as e:
         logger.error(e)
         assert False, str(e)
