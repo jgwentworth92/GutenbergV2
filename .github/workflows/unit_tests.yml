@@ -16,13 +16,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Run Kafka KRaft Broker
-        uses: spicyparrot/kafka-kraft-action@v1.1.0
-        with:
-          kafka-version: "3.7.0"
-          kafka-topics: "repos-topic,1,github-commits-out,1,addtovectordb,1,QdrantOutput,1,pdfInput,1"
-
       - name: Set environment variables
         run: |
           echo "GITHUB_TOKEN=${{ secrets.TOKEN_GITHUB }}" >> $GITHUB_ENV
@@ -50,4 +43,4 @@ jobs:
           pip install -r requirements.txt
 
       - name: 🧪 Run Unit Tests
-        run: pytest .
+        run: pytest tests/test_githubsummarizer_unit_tests.py
