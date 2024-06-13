@@ -162,3 +162,5 @@ cython_debug/
 
 # debezium
 debezium-setup/secrets/*
+
+.DS_store
