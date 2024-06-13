@@ -22,11 +22,13 @@ input_topic = config.INPUT_TOPIC
 output_topic = config.OUTPUT_TOPIC
 processed_topic = config.PROCESSED_TOPIC
 
-
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 def setup_bytewax_dataflows():
     logger.info("Starting Bytewax dataflows...")
     # Start the Bytewax dataflows
+    pdf_processing = subprocess.Popen(
+        ["python", "-m", "bytewax.run", "-w3", "dataflows.pdfProcessing"], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
     github_commit_processing = subprocess.Popen(
         ["python", "-m", "bytewax.run", "-w3", "dataflows.github_commit_processing"], stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
@@ -46,9 +48,11 @@ def setup_bytewax_dataflows():
     logger.info("Terminating Bytewax dataflows...")
     # Terminate the Bytewax dataflows
     github_commit_processing.terminate()
+    pdf_processing.terminate()
     commit_summary_service.terminate()
     qdrant_service.terminate()
     github_commit_processing.wait()
+    pdf_processing.wait()
     commit_summary_service.wait()
     qdrant_service.wait()
     logger.info("Bytewax dataflows terminated.")
