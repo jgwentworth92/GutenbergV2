@@ -41,70 +41,70 @@ services:
       kafka_b:
         condition: service_healthy
 
-  github_listener:
-    build: .
-    container_name: github_retriever
-    depends_on:
-      init-topics:
-        condition: service_completed_successfully
-    environment:
-      BROKERS: "${BROKERS}"
-      INPUT_TOPIC: "${INPUT_TOPIC}"
-      OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
-      GITHUB_TOKEN: "${GITHUB_TOKEN}"
-      VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
-      CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
-      PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
-    volumes:
-      - ./recovery/github_listener:/bytewax/recovery/github_listener
-    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/commit_summary_service", "-s", "3", "-b", "0", "-w4", "dataflows/commit_summary_service"]
+  # github_listener:
+  #   build: .
+  #   container_name: github_retriever
+  #   depends_on:
+  #     init-topics:
+  #       condition: service_completed_successfully
+  #   environment:
+  #     BROKERS: "${BROKERS}"
+  #     INPUT_TOPIC: "${INPUT_TOPIC}"
+  #     OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
+  #     GITHUB_TOKEN: "${GITHUB_TOKEN}"
+  #     VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
+  #     CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
+  #     PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
+  #   volumes:
+  #     - ./recovery/github_listener:/bytewax/recovery/github_listener
+  #   command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/commit_summary_service", "-s", "3", "-b", "0", "-w4", "dataflows/commit_summary_service"]
 
-  commit_summary_service:
-    build: .
-    container_name: commit_summary_service
-    depends_on:
-      init-topics:
-        condition: service_completed_successfully
-    environment:
-      BROKERS: "${BROKERS}"
-      OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
-      GITHUB_TOKEN: "${GITHUB_TOKEN}"
-      PROCESSED_TOPIC: "${PROCESSED_TOPIC}"
-      CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
-      PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
-      VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
-      TEMPLATE: "${TEMPLATE}"
-      OPENAI_API_KEY: "${OPENAI_API_KEY}"
-    volumes:
-      - ./recovery/commit_summary_service:/bytewax/recovery/commit_summary_service
-    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/github_listener", "-s", "3", "-b", "0", "-w4", "dataflows/github_commit_processing"]
-  qdrant:
-    image: qdrant/qdrant
-    ports:
-      - "6333:6333"
-      - "6334:6334"
-    volumes:
-      - qdrant-storage:/qdrant/storage:z
+  # commit_summary_service:
+  #   build: .
+  #   container_name: commit_summary_service
+  #   depends_on:
+  #     init-topics:
+  #       condition: service_completed_successfully
+  #   environment:
+  #     BROKERS: "${BROKERS}"
+  #     OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
+  #     GITHUB_TOKEN: "${GITHUB_TOKEN}"
+  #     PROCESSED_TOPIC: "${PROCESSED_TOPIC}"
+  #     CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
+  #     PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
+  #     VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
+  #     TEMPLATE: "${TEMPLATE}"
+  #     OPENAI_API_KEY: "${OPENAI_API_KEY}"
+  #   volumes:
+  #     - ./recovery/commit_summary_service:/bytewax/recovery/commit_summary_service
+  #   command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/github_listener", "-s", "3", "-b", "0", "-w4", "dataflows/github_commit_processing"]
+  # qdrant:
+  #   image: qdrant/qdrant
+  #   ports:
+  #     - "6333:6333"
+  #     - "6334:6334"
+  #   volumes:
+  #     - qdrant-storage:/qdrant/storage:z
 
-  add_qdrant_service:
-    build: .
-    container_name: add_qdrant_service
-    depends_on:
-      init-topics:
-        condition: service_completed_successfully
-    environment:
-      BROKERS: "${BROKERS}"
-      OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
-      GITHUB_TOKEN: "${GITHUB_TOKEN}"
-      PROCESSED_TOPIC: "${PROCESSED_TOPIC}"
-      CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
-      PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
-      VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
-      TEMPLATE: "${TEMPLATE}"
-      OPENAI_API_KEY: "${OPENAI_API_KEY}"
-    volumes:
-      - ./recovery/add_qdrant_service:/bytewax/recovery/add_qdrant_service
-    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/add_qdrant_service", "-s", "3", "-b", "0", "-w4", "dataflows/add_qdrant_service"]
+  # add_qdrant_service:
+  #   build: .
+  #   container_name: add_qdrant_service
+  #   depends_on:
+  #     init-topics:
+  #       condition: service_completed_successfully
+  #   environment:
+  #     BROKERS: "${BROKERS}"
+  #     OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
+  #     GITHUB_TOKEN: "${GITHUB_TOKEN}"
+  #     PROCESSED_TOPIC: "${PROCESSED_TOPIC}"
+  #     CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
+  #     PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
+  #     VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
+  #     TEMPLATE: "${TEMPLATE}"
+  #     OPENAI_API_KEY: "${OPENAI_API_KEY}"
+  #   volumes:
+  #     - ./recovery/add_qdrant_service:/bytewax/recovery/add_qdrant_service
+  #   command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/add_qdrant_service", "-s", "3", "-b", "0", "-w4", "dataflows/add_qdrant_service"]
 
   kafka-ui:
     container_name: kafka-ui
@@ -118,6 +118,69 @@ services:
       DYNAMIC_CONFIG_ENABLED: 'true'
     volumes:
       - ./kui/config.yml:/etc/kafkaui/dynamic_config.yaml
+
+  postgres:
+    image: postgres:latest
+    hostname: postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+  
+  debezium:
+    image: debezium/connect:2.6.2.Final
+    hostname: debezium
+    ports:
+      - "8083:8083"
+    depends_on:
+      - kafka_b
+      - postgres
+    environment:
+      BOOTSTRAP_SERVERS: kafka_b:9094
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: debezium_connect_configs
+      OFFSET_STORAGE_TOPIC: debezium_connect_offsets
+      STATUS_STORAGE_TOPIC: debezium_connect_statuses
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_REST_ADVERTISED_HOST_NAME: "debezium"
+      CONNECT_CONFIG_PROVIDERS: "file"
+      CONNECT_CONFIG_PROVIDERS_FILE_CLASS: "org.apache.kafka.common.config.provider.FileConfigProvider"
+      POSTGRES_HOSTNAME: ${POSTGRES_HOSTNAME}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    entrypoint: /kafka/debezium-setup/setup.sh
+    user: root
+    volumes:
+      - ./debezium-setup:/kafka/debezium-setup:ro
+      - ./debezium-setup/secrets:/secrets
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+  init-debezium:
+    image: curlimages/curl:latest
+    depends_on:
+      debezium:
+        condition: service_healthy
+    entrypoint: /kafka/debezium-setup/init-connector-config.sh
+    volumes:
+      - ./debezium-setup:/kafka/debezium-setup:ro
+
 volumes:
   qdrant-storage:
     driver: local

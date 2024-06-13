@@ -102,6 +102,12 @@ my_project/
    OPENAI_API_KEY=your_openai_api_key
    MODEL_PROVIDER=openai
    TEMPLATE=your_template_string
+
+   POSTGRES_HOSTNAME=postgres
+   POSTGRES_PORT=5432
+   POSTGRES_USER=admin
+   POSTGRES_DB=db
+   POSTGRES_PASSWORD=admin
    ```
 
 ## Configuration

@@ -13,3 +13,5 @@ langchain-community==0.0.31
 langchain-core==0.1.40
 langchain-openai
 qdrant_client
+SQLAlchemy==2.0.29
+psycopg2==2.9.9

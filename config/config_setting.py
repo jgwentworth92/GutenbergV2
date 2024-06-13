@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     PROCESSED_TOPIC: Optional[str] = None
     VECTORDB_TOPIC_NAME:Optional[str] = "vectordb_added_doc"
-    model_config = ConfigDict(env_file=".env", env_file_encoding='utf-8')
+    model_config = ConfigDict(env_file=".env", env_file_encoding='utf-8', extra=None)
 
     @classmethod
     def parse_env_var(cls, value: str) -> Dict[str, str]:
@@ -37,6 +37,11 @@ class DevelopmentConfig(Settings):
 class TestingConfig(Settings):
     TESTING: bool = True
     DEBUG: bool = True
+    POSTGRES_USER: str = "admin"
+    POSTGRES_PASSWORD: str = "admin"
+    POSTGRES_HOSTNAME: str = "postgres"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_DB: str = "db"
 
 @lru_cache()
 def get_config() -> Settings:
