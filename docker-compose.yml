@@ -41,70 +41,70 @@ services:
       kafka_b:
         condition: service_healthy
 
-  # github_listener:
-  #   build: .
-  #   container_name: github_retriever
-  #   depends_on:
-  #     init-topics:
-  #       condition: service_completed_successfully
-  #   environment:
-  #     BROKERS: "${BROKERS}"
-  #     INPUT_TOPIC: "${INPUT_TOPIC}"
-  #     OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
-  #     GITHUB_TOKEN: "${GITHUB_TOKEN}"
-  #     VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
-  #     CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
-  #     PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
-  #   volumes:
-  #     - ./recovery/github_listener:/bytewax/recovery/github_listener
-  #   command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/commit_summary_service", "-s", "3", "-b", "0", "-w4", "dataflows/commit_summary_service"]
+  github_listener:
+    build: .
+    container_name: github_retriever
+    depends_on:
+      init-topics:
+        condition: service_completed_successfully
+    environment:
+      BROKERS: "${BROKERS}"
+      INPUT_TOPIC: "${INPUT_TOPIC}"
+      OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
+      GITHUB_TOKEN: "${GITHUB_TOKEN}"
+      VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
+      CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
+      PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
+    volumes:
+      - ./recovery/github_listener:/bytewax/recovery/github_listener
+    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/commit_summary_service", "-s", "3", "-b", "0", "-w4", "dataflows/commit_summary_service"]
 
-  # commit_summary_service:
-  #   build: .
-  #   container_name: commit_summary_service
-  #   depends_on:
-  #     init-topics:
-  #       condition: service_completed_successfully
-  #   environment:
-  #     BROKERS: "${BROKERS}"
-  #     OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
-  #     GITHUB_TOKEN: "${GITHUB_TOKEN}"
-  #     PROCESSED_TOPIC: "${PROCESSED_TOPIC}"
-  #     CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
-  #     PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
-  #     VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
-  #     TEMPLATE: "${TEMPLATE}"
-  #     OPENAI_API_KEY: "${OPENAI_API_KEY}"
-  #   volumes:
-  #     - ./recovery/commit_summary_service:/bytewax/recovery/commit_summary_service
-  #   command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/github_listener", "-s", "3", "-b", "0", "-w4", "dataflows/github_commit_processing"]
-  # qdrant:
-  #   image: qdrant/qdrant
-  #   ports:
-  #     - "6333:6333"
-  #     - "6334:6334"
-  #   volumes:
-  #     - qdrant-storage:/qdrant/storage:z
+  commit_summary_service:
+    build: .
+    container_name: commit_summary_service
+    depends_on:
+      init-topics:
+        condition: service_completed_successfully
+    environment:
+      BROKERS: "${BROKERS}"
+      OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
+      GITHUB_TOKEN: "${GITHUB_TOKEN}"
+      PROCESSED_TOPIC: "${PROCESSED_TOPIC}"
+      CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
+      PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
+      VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
+      TEMPLATE: "${TEMPLATE}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+    volumes:
+      - ./recovery/commit_summary_service:/bytewax/recovery/commit_summary_service
+    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/github_listener", "-s", "3", "-b", "0", "-w4", "dataflows/github_commit_processing"]
+  qdrant:
+    image: qdrant/qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-storage:/qdrant/storage:z
 
-  # add_qdrant_service:
-  #   build: .
-  #   container_name: add_qdrant_service
-  #   depends_on:
-  #     init-topics:
-  #       condition: service_completed_successfully
-  #   environment:
-  #     BROKERS: "${BROKERS}"
-  #     OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
-  #     GITHUB_TOKEN: "${GITHUB_TOKEN}"
-  #     PROCESSED_TOPIC: "${PROCESSED_TOPIC}"
-  #     CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
-  #     PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
-  #     VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
-  #     TEMPLATE: "${TEMPLATE}"
-  #     OPENAI_API_KEY: "${OPENAI_API_KEY}"
-  #   volumes:
-  #     - ./recovery/add_qdrant_service:/bytewax/recovery/add_qdrant_service
-  #   command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/add_qdrant_service", "-s", "3", "-b", "0", "-w4", "dataflows/add_qdrant_service"]
+  add_qdrant_service:
+    build: .
+    container_name: add_qdrant_service
+    depends_on:
+      init-topics:
+        condition: service_completed_successfully
+    environment:
+      BROKERS: "${BROKERS}"
+      OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
+      GITHUB_TOKEN: "${GITHUB_TOKEN}"
+      PROCESSED_TOPIC: "${PROCESSED_TOPIC}"
+      CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
+      PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
+      VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
+      TEMPLATE: "${TEMPLATE}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+    volumes:
+      - ./recovery/add_qdrant_service:/bytewax/recovery/add_qdrant_service
+    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/add_qdrant_service", "-s", "3", "-b", "0", "-w4", "dataflows/add_qdrant_service"]
 
   kafka-ui:
     container_name: kafka-ui
