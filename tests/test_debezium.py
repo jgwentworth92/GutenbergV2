@@ -1,5 +1,6 @@
 import uuid
 import logging
+import time
 
 import pytest
 
@@ -14,6 +15,7 @@ def test_insert_user_into_database_and_check_kafka(postgres_engine, consume_mess
         insert_query = text(f"INSERT INTO app_user (username) VALUES ('{username}');")
         connection.execute(insert_query)
         connection.commit()
+        time.sleep(20)
 
     processed_messages = consume_messages("custom_topic", num_messages=2)
     assert any(

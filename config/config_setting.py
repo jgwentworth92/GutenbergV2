@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     PROCESSED_TOPIC: Optional[str] = None
     VECTORDB_TOPIC_NAME:Optional[str] = "vectordb_added_doc"
-    model_config = ConfigDict(env_file=".env", env_file_encoding='utf-8', extra=None)
+    model_config = ConfigDict(env_file=".env", env_file_encoding='utf-8')
 
     @classmethod
     def parse_env_var(cls, value: str) -> Dict[str, str]:
