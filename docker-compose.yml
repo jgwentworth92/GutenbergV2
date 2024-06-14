@@ -7,7 +7,7 @@ services:
       - "9092:9092"
       - "9094:9094"
     volumes:
-      - "kafka_data:/bitnami"
+      - kafka_data:/bitnami
     environment:
       - KAFKA_ENABLE_KRAFT=yes
       - KAFKA_CFG_PROCESS_ROLES=broker,controller
@@ -35,6 +35,7 @@ services:
         /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${OUTPUT_TOPIC} &&
         /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${INPUT_TOPIC} &&
         /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${VECTORDB_TOPIC_NAME} &&
+        /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${PDF_INPUT} &&
         /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${PROCESSED_TOPIC}
       "
     depends_on:
@@ -57,7 +58,7 @@ services:
       PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
     volumes:
       - ./recovery/github_listener:/bytewax/recovery/github_listener
-    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/commit_summary_service", "-s", "3", "-b", "0", "-w4", "dataflows/commit_summary_service"]
+    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/github_listener", "-s", "3", "-b", "0", "-w4", "dataflows/github_commit_processing"]
 
   commit_summary_service:
     build: .
@@ -72,12 +73,36 @@ services:
       PROCESSED_TOPIC: "${PROCESSED_TOPIC}"
       CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
       PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
+      MODEL_PROVIDER: "${MODEL_PROVIDER}"
       VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
       TEMPLATE: "${TEMPLATE}"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      LOCAL_LLM_URL: "${LOCAL_LLM_URL}"
     volumes:
       - ./recovery/commit_summary_service:/bytewax/recovery/commit_summary_service
-    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/github_listener", "-s", "3", "-b", "0", "-w4", "dataflows/github_commit_processing"]
+    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/commit_summary_service", "-s", "3", "-b", "0", "-w4", "dataflows/commit_summary_service"]
+  pdf_summary_service:
+    build: .
+    container_name: pdf_summary_service
+    depends_on:
+      init-topics:
+        condition: service_completed_successfully
+    environment:
+      BROKERS: "${BROKERS}"
+      OUTPUT_TOPIC: "${OUTPUT_TOPIC}"
+      GITHUB_TOKEN: "${GITHUB_TOKEN}"
+      PROCESSED_TOPIC: "${PROCESSED_TOPIC}"
+      CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
+      PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
+      MODEL_PROVIDER: "${MODEL_PROVIDER}"
+      VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
+      PDF_INPUT: "${PDF_INPUT}"
+      TEMPLATE: "${TEMPLATE}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      LOCAL_LLM_URL: "${LOCAL_LLM_URL}"
+    volumes:
+      - ./recovery/pdf_processing_recovery:/bytewax/recovery/pdf_processing_recovery
+    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/pdf_processing_recovery", "-s", "3", "-b", "0", "-w4", "dataflows/pdfProcessing"]
   qdrant:
     image: qdrant/qdrant
     ports:
@@ -100,8 +125,10 @@ services:
       CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
       PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
       VECTORDB_TOPIC_NAME: "${VECTORDB_TOPIC_NAME}"
+      MODEL_PROVIDER: "${MODEL_PROVIDER}"
       TEMPLATE: "${TEMPLATE}"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      LOCAL_LLM_URL: "${LOCAL_LLM_URL}"
     volumes:
       - ./recovery/add_qdrant_service:/bytewax/recovery/add_qdrant_service
     command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/add_qdrant_service", "-s", "3", "-b", "0", "-w4", "dataflows/add_qdrant_service"]

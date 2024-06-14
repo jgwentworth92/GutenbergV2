@@ -9,19 +9,14 @@ The project aims to develop an automated system capable of grading GitHub reposi
 
 ## Table of Contents
 
-- [Kafka Consumer with Vector Database Additions](#kafka-consumer-with-vector-database-additions)
-  - [Table of Contents](#table-of-contents)
   - [Features](#features)
   - [Project Structure](#project-structure)
-  - [Setup and Installation](#setup-and-installation)
+  - [Prerequisites](#pre-requisites)
+  - [Installation](#setup-and-installation)
+  - [Running](#running)
   - [Configuration](#configuration)
-  - [Running the Services](#running-the-services)
-  - [Running the Dataflows](#running-the-dataflows)
-  - [Creating Recovery Partitions](#creating-recovery-partitions)
+  - [Running the Dataflows Manually](#running-the-dataflows)
   - [Testing](#testing)
-  - [Additional Services](#additional-services)
-    - [Kafka UI](#kafka-ui)
-    - [Qdrant Web UI](#qdrant-web-ui)
 
 ## Features
 
@@ -29,8 +24,8 @@ The project aims to develop an automated system capable of grading GitHub reposi
 - Process commit messages to generate summaries
 - Store results in a vector database
 - Kafka integration for message streaming
-- Configurable to use different chat models (OpenAI, Fake model)
-- Kafka Kraft instance for broker management
+- Configurable to use different chat models and providers (OpenAI, Fake model, local model)
+- Kafka KRaft instance for broker management
 - Kafka UI for cluster management
 - REST Proxy for interacting with Kafka topics via REST API
 - Schema Registry for managing Kafka message schemas
@@ -69,39 +64,80 @@ my_project/
 └── requirements.txt
 ```
 
-## Setup and Installation
+
+## Prerequisites
+
+- Python
+- Git
+- Docker
+
+## Installation
 
 1. **Clone the repository:**
    ```sh
    git clone https://github.com/jgwentworth92/GutenbergV2.git
-   cd your-repo
+   cd GutenbergV2
    ```
 
-2. **Create and activate a virtual environment:**
-   ```sh
-   python -m venv venv
-   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-   ```
+2. **Create and activate a virtual environment according to your operating system:**
+
+   1. **On Linux:**
+      ```sh
+      python -m venv venv
+      source venv/bin/activate  
+      ```
+   
+   2. **On Windows:**
+      ```sh
+      python -m venv venv
+      venv\Scripts\activate
+      ```
+
 
 3. **Install the dependencies:**
    ```sh
    pip install -r requirements.txt
    ```
 
-4. **Set up your environment variables:**
+4. **Create the recovery partitions**:
+
+    Create the necessary directories for the recovery partitions:
+
+   ```sh
+   mkdir recovery
+   cd recovery
+   mkdir github_listener
+   mkdir commit_summary_service
+   mkdir add_qdrant_service
+   cd ..
+   ```
+
+    Set up recovery partitions for each microservice:
+
+   ```sh
+   python -m bytewax.recovery recovery/github_listener 4
+   python -m bytewax.recovery recovery/commit_summary_service 4
+   python -m bytewax.recovery recovery/add_qdrant_service 4
+   ```
+
+    This ensures that Bytewax can recover from failures and continue processing. 
+
+
+5. **Set up your environment variables:**
    Create a `.env` file in the root directory and add the required environment variables:
     ```env
    GITHUB_TOKEN=your_github_token
-   BROKERS="localhost:9092"
-   INPUT_TOPIC=your_input_topic
-   OUTPUT_TOPIC=your_output_topic
-   PROCESSED_TOPIC=your_processed_topic
-   VECTORDB_TOPIC_NAME=your_vectordb_topic_name
+   BROKERS="kafka_b:9094"
+   INPUT_TOPIC=repos-topic
+   OUTPUT_TOPIC=github-commits-out
+   PROCESSED_TOPIC=addtovectordb
+   VECTORDB_TOPIC_NAME="QdrantOutput"
    CONSUMER_CONFIG={"bootstrap.servers": "kafka_b:9094","auto.offset.reset": "earliest","group.id": "consumer_group","enable.auto.commit": "True"}
    PRODUCER_CONFIG={"bootstrap.servers": "kafka_b:9094"}
    OPENAI_API_KEY=your_openai_api_key
-   MODEL_PROVIDER=openai
-   TEMPLATE=your_template_string
+   MODEL_PROVIDER=fake
+   TEMPLATE = "You are an assistant whose job is to create detailed descriptions of what the provided code files do.Please review the code below and explain its functionality in detail.Code:{text}"
+   LOCAL_LLM_URL = "http://[your_ip_address]:1234/v1"
 
    POSTGRES_HOSTNAME=postgres
    POSTGRES_PORT=5432
@@ -109,12 +145,29 @@ my_project/
    POSTGRES_DB=db
    POSTGRES_PASSWORD=admin
    ```
+   ### Using OpenAI
+   1. **Set up OpenAI API key:**
+   Create an account on OpenAI and get an API key. Add the key to the `.env` file.
+   2. **Set the model provider to OpenAI:**
+      Set the `MODEL_PROVIDER` environment variable to `openai` in the `.env` file.
+   
+   ### Using a Local Model
 
-## Configuration
+   The system is known to work with LMStudio, but it should theoretically work with any OpenAI API-compatible system.
 
-The application configuration is managed using Pydantic settings. Modify the `config/config_setting.py` file to update the configuration settings.
+   1. **Set up the local model:**
+      Install LMStudio (or another backend) and turn on the server. [Here is a tutorial](https://www.youtube.com/watch?v=yBI1nPep72Q). Recommended model: `lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF`
+   2. **Set the model provider to Local:**
+      Set the `MODEL_PROVIDER` environment variable to `lmstudio` in the `.env` file.
+   3. **Set the local model URL:**
+      Set the `LOCAL_LLM_URL` environment variable to the URL of the local model server in the `.env` file. In the case of LMStudio, the URL is `http://[your_ip_address]:1234/v1`. Make sure to use the correct IP address for your computer, as Docker containers cannot access `localhost`.
 
-## Running the Services
+   ### Using a Fake Model
+
+   1. **Set the model provider to Fake:**
+      Set the `MODEL_PROVIDER` environment variable to `fake` in the `.env` file.
+
+## Usage
 
 To start all services, navigate to the root directory of your project where the `docker-compose.yml` file is located and run the following command:
 
@@ -122,11 +175,49 @@ To start all services, navigate to the root directory of your project where the 
 docker-compose up --build
 ```
 
-This will build and start all the services defined in your `docker-compose.yml` file.
+This will build and start all the services required.
 
-## Running the Dataflows
+The Kafka UI is used to import repos to process. It can be accessed at [http://localhost:8080/](http://localhost:8080/). 
 
-To run the dataflows, use the following command format, replacing `(filename)` with the actual filename of the dataflow script without the `.py` extension:
+### In order to add a repo:
+
+1. Open the Web UI
+
+
+2. Select "Topics" from the left-hand menu. If the menu is hidden, click on the hamburger icon on the top left.
+
+
+3. Click on "repos-topic" from the list of topics.
+
+
+4. Click on the "Produce Message" button on the top right.
+
+
+5. Enter the GitHub repo owner and URL in the "Value" field, in this format:
+
+    ```json
+    {
+	"owner": "octocat",
+	"repo_name": "Hello-World"
+    }
+    ```
+   Make sure it is a public repo, or it is a repo you currently have access to via the GitHub token in the `.env` file. Leave all other values as default.
+
+
+6. Click on the "Produce Message" button at the bottom of the dialog to add the repo to the topic.
+
+The system will automatically process the repo and generate summaries using the LLM, via the provider specified in the `.env` file.
+
+The Qdrant Web UI is used to see the generated summaries. It can be accessed at [http://localhost:6333/dashboard#/collections](http://localhost:6333/dashboard#/collections).
+
+## Configuration
+
+The application configuration is managed using Pydantic settings. Modify the `config/config_setting.py` file to update the configuration settings.
+
+
+## Running the Dataflows Manually
+
+The system runs the dataflows automatically. To run the dataflows manually, use the following command format, replacing `(filename)` with the actual filename of the dataflow script without the `.py` extension:
 
 ```sh
 python -m bytewax.run -w3 dataflows.(filename)
@@ -150,34 +241,6 @@ And to run the add to Qdrant service dataflow:
 python -m bytewax.run -w3 dataflows.add_qdrant_service
 ```
 
-## Creating Recovery Partitions
-
-Before creating recovery partitions, ensure that the necessary directories exist. If not, create them:
-
-```sh
-mkdir -p recovery/github_listener
-mkdir -p recovery/commit_summary_service
-mkdir -p recovery/add_qdrant_service
-```
-
-To set up recovery partitions for each microservice, run the following commands. This ensures that Bytewax can recover from failures and continue processing.
-
-1. **GitHub Commit Processing Recovery Partition:**
-   ```sh
-   python -m bytewax.recovery recovery/github_listener 4
-   ```
-
-2. **Commit Summary Service Recovery Partition:**
-   ```sh
-   python -m bytewax.recovery recovery/commit_summary_service 4
-   ```
-
-3. **Add to Qdrant Service Recovery Partition:**
-   ```sh
-   python -m bytewax.recovery recovery/add_qdrant_service 4
-   ```
-
-These commands should be run from the root directory of your project.
 
 ## Testing
 
@@ -188,13 +251,3 @@ pytest .
 ```
 
 The tests are located in the `tests/` directory and cover the GitHub service, message processing service, and dataflows.
-
-## Additional Services
-
-### Kafka UI
-
-Kafka UI is included for cluster management, providing a web interface to manage and monitor Kafka clusters. Kafka UI can be accessed at [http://localhost:8080/](http://localhost:8080/). When adding a cluster, use `kafka_b` for the host and port `9094`.
-
-### Qdrant Web UI
-
-Qdrant Web UI is included to manage the vector database. Qdrant Web UI can be accessed at [http://localhost:6333/dashboard#/collections](http://localhost:6333/dashboard#/collections).

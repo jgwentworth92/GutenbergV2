@@ -1,4 +1,4 @@
-name: "Unit Testing"
+name: "PDF Processing Intergration Test"
 
 on: [push, pull_request]
 
@@ -21,7 +21,7 @@ jobs:
         uses: spicyparrot/kafka-kraft-action@v1.1.0
         with:
           kafka-version: "3.7.0"
-          kafka-topics: "repos-topic,1,github-commits-out,1,addtovectordb,1,QdrantOutput,1"
+          kafka-topics: "repos-topic,1,github-commits-out,1,addtovectordb,1,QdrantOutput,1,pdfInput,1"
 
       - name: Set environment variables
         run: |
@@ -32,10 +32,13 @@ jobs:
           echo "CONSUMER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\",\"group.id\": \"your_unique_group_id\",\"auto.offset.reset\": \"earliest\",\"enable.auto.commit\": \"true\"}" >> $GITHUB_ENV
           echo "PRODUCER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\"}" >> $GITHUB_ENV
           echo "PROCESSED_TOPIC=addtovectordb" >> $GITHUB_ENV
+          echo "VECTORDB_TOPIC_NAME="QdrantOutput"" >> $GITHUB_ENV
           echo "MODEL_PROVIDER=fake" >> $GITHUB_ENV
           echo "OPENAI_API_KEY=sk-fakekeyapikey" >> $GITHUB_ENV
           echo "TEMPLATE=${{ secrets.TEMPLATE }}" >> $GITHUB_ENV
           echo "VECTOR_DB_HOST=localhost" >> $GITHUB_ENV
+          echo "LOCAL_LLM_URL=localhost" >> $GITHUB_ENV
+          echo "PDF_INPUT=pdfInput" >> $GITHUB_ENV
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -46,5 +49,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: 🧪 Run Unit Tests
-        run: pytest .
+      - name: 🧪 Run PDF Processing Intergration Test
+        run: pytest tests/test_kafka_pdf.py

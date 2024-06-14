@@ -1,5 +1,4 @@
-FROM python:3.12-slim as base
-
+FROM python:3.12.3-slim as base
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONFAULTHANDLER=1 \
@@ -14,8 +13,6 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create recovery directories for each service
-RUN mkdir -p /bytewax/recovery/github_listener /bytewax/recovery/commit_summary_service  /bytewax/recovery/add_qdrant_service
 
 # Copy requirements file and install dependencies
 COPY ./requirements.txt /bytewax/requirements.txt
