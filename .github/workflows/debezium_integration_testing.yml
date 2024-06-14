@@ -12,16 +12,12 @@ jobs:
         ports:
           - 5432:5432
         env:
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-        options: >
-          --health-cmd="pg_isready" 
-          --health-interval=10s 
-          --health-timeout=5s 
-          --health-retries=5
+          POSTGRES_DB: "db"
+          POSTGRES_USER: "admin"
+          POSTGRES_PASSWORD: "admin"
         volumes:
           - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+        options: --health-cmd="pg_isready" --health-interval=10s --health-retries=5 --health-timeout=5s
 
       debezium:
         image: debezium/connect:2.6.2.Final
@@ -40,25 +36,12 @@ jobs:
           CONNECT_REST_ADVERTISED_HOST_NAME: "debezium"
           CONNECT_CONFIG_PROVIDERS: "env"
           CONNECT_CONFIG_PROVIDERS_ENV_CLASS: "org.apache.kafka.common.config.provider.EnvVarConfigProvider"
-          POSTGRES_HOSTNAME: ${{ secrets.POSTGRES_HOSTNAME }}
-          POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-        options: >
-          --health-cmd="curl -f http://localhost:8083/"
-          --health-interval=30s
-          --health-timeout=10s
-          --health-retries=5
-          --health-start-period=40s
-      init-debezium:
-        image: curlimages/curl:latest
-        depends_on:
-          debezium:
-            condition: service_healthy
-        command: /kafka/debezium-setup/init-connector-config.sh
-        volumes:
-          - ./debezium-setup:/kafka/debezium-setup:ro
+          POSTGRES_HOSTNAME: "postgres"
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: "admin"
+          POSTGRES_DB: "db"
+          POSTGRES_PASSWORD: "admin"
+        options: --health-cmd="curl -f http://localhost:8083/" --health-interval=30s --health-timeout=10s --health-retries=5 --health-start-period=40s
 
     steps:
       - name: Checkout code
@@ -87,10 +70,25 @@ jobs:
           echo "LOCAL_LLM_URL=localhost" >> $GITHUB_ENV
           echo "PDF_INPUT=pdfInput" >> $GITHUB_ENV
           echo "POSTGRES_HOSTNAME=0.0.0.0" >> $GITHUB_ENV
-          echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> $GITHUB_ENV
-          echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> $GITHUB_ENV
-          echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> $GITHUB_ENV
-          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> $GITHUB_ENV
+          echo "POSTGRES_PORT=5432" >> $GITHUB_ENV
+          echo "POSTGRES_USER=admin" >> $GITHUB_ENV
+          echo "POSTGRES_DB=db" >> $GITHUB_ENV
+          echo "POSTGRES_PASSWORD=admin" >> $GITHUB_ENV
+
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          echo "Waiting for PostgreSQL to be ready..."
+          until docker exec postgres pg_isready; do
+            sleep 5
+          done
+          echo "PostgreSQL is ready!"
+
+      - name: Initialize Debezium
+        run: |
+          docker run --rm \
+            -v $PWD/debezium-setup:/kafka/debezium-setup:ro \
+            curlimages/curl:latest \
+            /kafka/debezium-setup/init-connector-config.sh
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
