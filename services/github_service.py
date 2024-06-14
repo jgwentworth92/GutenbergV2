@@ -131,7 +131,8 @@ def fetch_and_emit_commits(repo_info: Dict[str, Any]) -> Generator[str, None, No
 
         documents = [doc for doc in documents if doc is not None]
 
-        yield [document.model_dump_json() for document in documents]
+        for document in documents:
+            yield document.model_dump_json()
         logger.info(f"Processed combined commit data into {len(documents)} documents for repo {repo_name}")
 
     except Exception as e:
