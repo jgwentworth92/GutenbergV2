@@ -6,57 +6,14 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:latest
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_DB: "db"
-          POSTGRES_USER: "admin"
-          POSTGRES_PASSWORD: "admin"
-        volumes:
-          - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-        options: --health-cmd="pg_isready" --health-interval=10s --health-retries=5 --health-timeout=5s
-
-      debezium:
-        image: debezium/connect:2.6.2.Final
-        ports:
-          - 8083:8083
-        env:
-          BOOTSTRAP_SERVERS: "${{ env.kafka_runner_address }}:9094"
-          GROUP_ID: "1"
-          CONFIG_STORAGE_TOPIC: "debezium_connect_configs"
-          OFFSET_STORAGE_TOPIC: "debezium_connect_offsets"
-          STATUS_STORAGE_TOPIC: "debezium_connect_statuses"
-          KEY_CONVERTER_SCHEMAS_ENABLE: "false"
-          VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
-          CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-          CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-          CONNECT_REST_ADVERTISED_HOST_NAME: "debezium"
-          CONNECT_CONFIG_PROVIDERS: "env"
-          CONNECT_CONFIG_PROVIDERS_ENV_CLASS: "org.apache.kafka.common.config.provider.EnvVarConfigProvider"
-          POSTGRES_HOSTNAME: "postgres"
-          POSTGRES_PORT: 5432
-          POSTGRES_USER: "admin"
-          POSTGRES_DB: "db"
-          POSTGRES_PASSWORD: "admin"
-        options: --health-cmd="curl -f http://localhost:8083/" --health-interval=30s --health-timeout=10s --health-retries=5 --health-start-period=40s
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Kafka KRaft Broker
-        uses: spicyparrot/kafka-kraft-action@v1.1.0
-        with:
-          kafka-version: "3.7.0"
-          kafka-topics: "custom_topic,1"
-
       - name: Set environment variables
         run: |
           echo "GITHUB_TOKEN=${{ secrets.TOKEN_GITHUB }}" >> $GITHUB_ENV
-          echo "BROKERS=${{ env.kafka_runner_address }}:9093" >> $GITHUB_ENV
+          echo "BROKERS=kafka_b:9094" >> $GITHUB_ENV
           echo "INPUT_TOPIC=repos-topic" >> $GITHUB_ENV
           echo "OUTPUT_TOPIC=github-commits-out" >> $GITHUB_ENV
           echo "CONSUMER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\",\"group.id\": \"your_unique_group_id\",\"auto.offset.reset\": \"latest\",\"enable.auto.commit\": \"true\"}" >> $GITHUB_ENV
@@ -69,26 +26,15 @@ jobs:
           echo "VECTOR_DB_HOST=localhost" >> $GITHUB_ENV
           echo "LOCAL_LLM_URL=localhost" >> $GITHUB_ENV
           echo "PDF_INPUT=pdfInput" >> $GITHUB_ENV
-          echo "POSTGRES_HOSTNAME=0.0.0.0" >> $GITHUB_ENV
+          echo "POSTGRES_HOSTNAME=postgres" >> $GITHUB_ENV
           echo "POSTGRES_PORT=5432" >> $GITHUB_ENV
           echo "POSTGRES_USER=admin" >> $GITHUB_ENV
           echo "POSTGRES_DB=db" >> $GITHUB_ENV
           echo "POSTGRES_PASSWORD=admin" >> $GITHUB_ENV
 
-      - name: Wait for PostgreSQL to be ready
-        run: |
-          echo "Waiting for PostgreSQL to be ready..."
-          until docker exec postgres pg_isready; do
-            sleep 5
-          done
-          echo "PostgreSQL is ready!"
+      - name: run the services
+        run: docker compose up -d --build kafka_b postgres debezium init-debezium
 
-      - name: Initialize Debezium
-        run: |
-          docker run --rm \
-            -v $PWD/debezium-setup:/kafka/debezium-setup:ro \
-            curlimages/curl:latest \
-            /kafka/debezium-setup/init-connector-config.sh
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -98,6 +44,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          echo "ENVIRONMENT=testing" >> $GITHUB_ENV
+          echo "POSTGRES_HOSTNAME=0.0.0.0" >> $GITHUB_ENV
+          echo "BROKERS=0.0.0.0:9092" >> $GITHUB_ENV
 
       - name: 🧪 Run Intergration Tests
         run: pytest tests/test_debezium.py
+      
+      - name: Tear down Docker Compose
+        if: always()
+        run: docker-compose down -v
