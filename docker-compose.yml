@@ -146,6 +146,63 @@ services:
     volumes:
       - ./kui/config.yml:/etc/kafkaui/dynamic_config.yaml
 
+  postgres:
+    image: postgres:latest
+    hostname: postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+  
+  debezium:
+    image: debezium/connect:2.6.2.Final
+    hostname: debezium
+    ports:
+      - "8083:8083"
+    depends_on:
+      - kafka_b
+      - postgres
+    environment:
+      BOOTSTRAP_SERVERS: kafka_b:9094
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: debezium_connect_configs
+      OFFSET_STORAGE_TOPIC: debezium_connect_offsets
+      STATUS_STORAGE_TOPIC: debezium_connect_statuses
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_REST_ADVERTISED_HOST_NAME: "debezium"
+      CONNECT_CONFIG_PROVIDERS: 'env'
+      CONNECT_CONFIG_PROVIDERS_ENV_CLASS: 'org.apache.kafka.common.config.provider.EnvVarConfigProvider'
+      POSTGRES_HOSTNAME: ${POSTGRES_HOSTNAME}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+  init-debezium:
+    image: curlimages/curl:latest
+    depends_on:
+      debezium:
+        condition: service_healthy
+    entrypoint: /kafka/debezium-setup/init-connector-config.sh
+    volumes:
+      - ./debezium-setup:/kafka/debezium-setup:ro
+
 volumes:
   qdrant-storage:
     driver: local

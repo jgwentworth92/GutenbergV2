@@ -1,0 +1,56 @@
+name: "Debezium Intergration Testing"
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set environment variables
+        run: |
+          echo "GITHUB_TOKEN=${{ secrets.TOKEN_GITHUB }}" >> $GITHUB_ENV
+          echo "BROKERS=kafka_b:9094" >> $GITHUB_ENV
+          echo "INPUT_TOPIC=repos-topic" >> $GITHUB_ENV
+          echo "OUTPUT_TOPIC=github-commits-out" >> $GITHUB_ENV
+          echo "CONSUMER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\",\"group.id\": \"your_unique_group_id\",\"auto.offset.reset\": \"latest\",\"enable.auto.commit\": \"true\"}" >> $GITHUB_ENV
+          echo "PRODUCER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\"}" >> $GITHUB_ENV
+          echo "PROCESSED_TOPIC=addtovectordb" >> $GITHUB_ENV
+          echo "VECTORDB_TOPIC_NAME="QdrantOutput"" >> $GITHUB_ENV
+          echo "MODEL_PROVIDER=fake" >> $GITHUB_ENV
+          echo "OPENAI_API_KEY=sk-fakekeyapikey" >> $GITHUB_ENV
+          echo "TEMPLATE=${{ secrets.TEMPLATE }}" >> $GITHUB_ENV
+          echo "VECTOR_DB_HOST=localhost" >> $GITHUB_ENV
+          echo "LOCAL_LLM_URL=localhost" >> $GITHUB_ENV
+          echo "PDF_INPUT=pdfInput" >> $GITHUB_ENV
+          echo "POSTGRES_HOSTNAME=postgres" >> $GITHUB_ENV
+          echo "POSTGRES_PORT=5432" >> $GITHUB_ENV
+          echo "POSTGRES_USER=admin" >> $GITHUB_ENV
+          echo "POSTGRES_DB=db" >> $GITHUB_ENV
+          echo "POSTGRES_PASSWORD=admin" >> $GITHUB_ENV
+
+      - name: run the services
+        run: docker compose up -d --build kafka_b postgres debezium init-debezium
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          echo "ENVIRONMENT=testing" >> $GITHUB_ENV
+          echo "POSTGRES_HOSTNAME=0.0.0.0" >> $GITHUB_ENV
+          echo "BROKERS=0.0.0.0:9092" >> $GITHUB_ENV
+
+      - name: 🧪 Run Intergration Tests
+        run: pytest tests/test_debezium.py
+      
+      - name: Tear down Docker Compose
+        if: always()
+        run: docker-compose down -v

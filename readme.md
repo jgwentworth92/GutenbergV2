@@ -138,6 +138,12 @@ my_project/
    MODEL_PROVIDER=fake
    TEMPLATE = "You are an assistant whose job is to create detailed descriptions of what the provided code files do.Please review the code below and explain its functionality in detail.Code:{text}"
    LOCAL_LLM_URL = "http://[your_ip_address]:1234/v1"
+
+   POSTGRES_HOSTNAME=postgres
+   POSTGRES_PORT=5432
+   POSTGRES_USER=admin
+   POSTGRES_DB=db
+   POSTGRES_PASSWORD=admin
    ```
    ### Using OpenAI
    1. **Set up OpenAI API key:**

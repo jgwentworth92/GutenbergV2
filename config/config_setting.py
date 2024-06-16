@@ -39,6 +39,11 @@ class DevelopmentConfig(Settings):
 class TestingConfig(Settings):
     TESTING: bool = True
     DEBUG: bool = True
+    POSTGRES_USER: str = "admin"
+    POSTGRES_PASSWORD: str = "admin"
+    POSTGRES_HOSTNAME: str = "postgres"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_DB: str = "db"
 
 @lru_cache()
 def get_config() -> Settings:

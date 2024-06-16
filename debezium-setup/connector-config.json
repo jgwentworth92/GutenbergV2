@@ -1,0 +1,20 @@
+{
+  "name": "postgres_connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "${env:POSTGRES_HOSTNAME}",
+    "database.port": "${env:POSTGRES_PORT}",
+    "database.user": "${env:POSTGRES_USER}",
+    "database.dbname": "${env:POSTGRES_DB}",
+    "database.password": "${env:POSTGRES_PASSWORD}",
+    "database.server.name": "fullfillment",
+    "table.include.list": "public.app_user",
+    "publication.name": "my_publication",
+    "topic.prefix": "app_user",
+    "plugin.name": "pgoutput",
+    "transforms": "Reroute",
+    "transforms.Reroute.type": "io.debezium.transforms.ByLogicalTableRouter",
+    "transforms.Reroute.topic.regex": "app_user.public.app_user",
+    "transforms.Reroute.topic.replacement": "custom_topic"
+  }
+}
