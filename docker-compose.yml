@@ -36,11 +36,27 @@ services:
         /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${INPUT_TOPIC} &&
         /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${VECTORDB_TOPIC_NAME} &&
         /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${PDF_INPUT} &&
-        /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${PROCESSED_TOPIC}
+        /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${PROCESSED_TOPIC} &&
+        /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic resource_topic
       "
     depends_on:
       kafka_b:
         condition: service_healthy
+
+  gateway_service:
+    build: .
+    depends_on:
+      init-topics:
+        condition: service_completed_successfully
+    environment:
+      BROKERS: "${BROKERS}"
+      INPUT_TOPIC: "${INPUT_TOPIC}"
+      CONSUMER_CONFIG: "${CONSUMER_CONFIG}"
+      PRODUCER_CONFIG: "${PRODUCER_CONFIG}"
+    volumes:
+      - ./recovery/gateway_service:/bytewax/recovery/gateway_service
+    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/gateway_service", "-s", "3", "-b", "0", "-w4", "dataflows/gateway_service/main"]
+
 
   github_listener:
     build: .
@@ -149,6 +165,7 @@ services:
   postgres:
     image: postgres:latest
     hostname: postgres
+    container_name: postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}

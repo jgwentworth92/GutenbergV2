@@ -8,13 +8,13 @@
     "database.dbname": "${env:POSTGRES_DB}",
     "database.password": "${env:POSTGRES_PASSWORD}",
     "database.server.name": "fullfillment",
-    "table.include.list": "public.app_user",
+    "table.include.list": "public.resource_table",
     "publication.name": "my_publication",
-    "topic.prefix": "app_user",
+    "topic.prefix": "debezium",
     "plugin.name": "pgoutput",
     "transforms": "Reroute",
     "transforms.Reroute.type": "io.debezium.transforms.ByLogicalTableRouter",
-    "transforms.Reroute.topic.regex": "app_user.public.app_user",
-    "transforms.Reroute.topic.replacement": "custom_topic"
+    "transforms.Reroute.topic.regex": "debezium.public.resource_table",
+    "transforms.Reroute.topic.replacement": "resource_topic"
   }
 }

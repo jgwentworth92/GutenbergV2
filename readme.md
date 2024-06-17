@@ -118,6 +118,8 @@ my_project/
    python -m bytewax.recovery recovery/github_listener 4
    python -m bytewax.recovery recovery/commit_summary_service 4
    python -m bytewax.recovery recovery/add_qdrant_service 4
+   python -m bytewax.recovery recovery/gateway_service 4
+   python -m bytewax.recovery recovery/pdf_service 4
    ```
 
     This ensures that Bytewax can recover from failures and continue processing. 

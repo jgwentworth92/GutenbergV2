@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     BROKERS: Optional[str] = None
     INPUT_TOPIC: Optional[str] = None
     OUTPUT_TOPIC: Optional[str] = None
+    RESOURCE_TOPIC: str = "resource_topic"
     PDF_INPUT:Optional[str] = None
     CONSUMER_CONFIG: Optional[Dict[str, str]] = None
     PRODUCER_CONFIG: Optional[Dict[str, str]] = None
@@ -24,7 +25,7 @@ class Settings(BaseSettings):
     PROCESSED_TOPIC: Optional[str] = None
     VECTORDB_TOPIC_NAME:Optional[str] = "vectordb_added_doc"
     LOCAL_LLM_URL: str
-    model_config = ConfigDict(env_file=".env", env_file_encoding='utf-8')
+    model_config = ConfigDict(env_file=".env", env_file_encoding='utf-8', extra=None)
 
     @classmethod
     def parse_env_var(cls, value: str) -> Dict[str, str]:
