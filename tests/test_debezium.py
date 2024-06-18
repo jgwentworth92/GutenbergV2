@@ -15,7 +15,7 @@ def test_insert_user_into_database_and_check_kafka(postgres_engine, consume_mess
     data = json.dumps({"data": "github"})
     with postgres_engine.connect() as connection:
         insert_query = text(
-            f"INSERT INTO resource_table (resource_type, resource_data) VALUES ('{username}', {data});"
+            f"INSERT INTO resource_table (resource_type, resource_data) VALUES ('{username}', '{data}');"
         )
         connection.execute(insert_query)
         connection.commit()
