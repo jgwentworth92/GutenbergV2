@@ -43,4 +43,4 @@ jobs:
           pip install -r requirements.txt
 
       - name: 🧪 Run Unit Tests
-        run: pytest tests/test_githubsummarizer_unit_tests.py
+        run: pytest tests/test_githubsummarizer_unit_tests.py tests/test_gateway_service.py

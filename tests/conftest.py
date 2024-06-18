@@ -134,7 +134,7 @@ def fake_event_data():
 # Generalized Fixture to Create Dataflows
 @pytest.fixture
 def create_dataflow():
-    def _create_dataflow(processing_function, input_data):
+    def _create_dataflow(processing_function, input_data, operator=op.flat_map):
         logger.debug(f"Creating dataflow")
 
         flow = Dataflow(f"Test_Dataflow")
@@ -143,7 +143,7 @@ def create_dataflow():
         op.inspect("check_inp", inp)
 
         # Ensure processing_function is applied with flat_map
-        processed = op.flat_map("process", inp, processing_function)
+        processed = operator("process", inp, processing_function)
 
         op.inspect("check_processed", processed)
 
