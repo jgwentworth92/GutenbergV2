@@ -109,6 +109,8 @@ my_project/
    mkdir github_listener
    mkdir commit_summary_service
    mkdir add_qdrant_service
+   mkdir gateway_service
+   mkdir pdf_service
    cd ..
    ```
 
