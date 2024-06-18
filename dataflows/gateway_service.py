@@ -6,7 +6,7 @@ from dataflows.gateway_service.resource_handler_mapping import RESOURCE_HANDLER_
 from icecream import ic
 
 from bytewax import operators as op
-from bytewax.connectors.kafka import KafkaSource, KafkaSink
+from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage
 from bytewax.dataflow import Dataflow
 
 
@@ -16,6 +16,13 @@ from confluent_kafka import OFFSET_STORED
 # Bytewax dataflow setup
 flow = Dataflow("Gateway Service")
 ic(f"the stored offset is {OFFSET_STORED}")
+
+def github_message_handler(msg):
+    resource_data = msg.get("resource_data")
+    return KafkaSinkMessage(None, orjson.dumps(resource_data), topic="github_topic")
+
+
+RESOURCE_HANDLER_MAPPING = {"github": github_message_handler}
 
 # Create KafkaSource for consuming messages from Kafka
 kafka_input = op.input(
