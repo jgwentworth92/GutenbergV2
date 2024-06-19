@@ -109,6 +109,8 @@ my_project/
    mkdir github_listener
    mkdir commit_summary_service
    mkdir add_qdrant_service
+   mkdir gateway_service
+   mkdir pdf_service
    cd ..
    ```
 
@@ -118,6 +120,8 @@ my_project/
    python -m bytewax.recovery recovery/github_listener 4
    python -m bytewax.recovery recovery/commit_summary_service 4
    python -m bytewax.recovery recovery/add_qdrant_service 4
+   python -m bytewax.recovery recovery/gateway_service 4
+   python -m bytewax.recovery recovery/pdf_service 4
    ```
 
     This ensures that Bytewax can recover from failures and continue processing. 
@@ -138,6 +142,12 @@ my_project/
    MODEL_PROVIDER=fake
    TEMPLATE = "You are an assistant whose job is to create detailed descriptions of what the provided code files do.Please review the code below and explain its functionality in detail.Code:{text}"
    LOCAL_LLM_URL = "http://[your_ip_address]:1234/v1"
+
+   POSTGRES_HOSTNAME=postgres
+   POSTGRES_PORT=5432
+   POSTGRES_USER=admin
+   POSTGRES_DB=db
+   POSTGRES_PASSWORD=admin
    ```
    ### Using OpenAI
    1. **Set up OpenAI API key:**

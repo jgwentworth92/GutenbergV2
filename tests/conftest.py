@@ -1,20 +1,25 @@
 import time
+import logging
+import subprocess
 
 import pytest
-from bytewax.dataflow import Dataflow
 import bytewax.operators as op
-from bytewax.testing import TestingSource, TestingSink, run_main
-import logging
-from typing import Dict, Any
-from confluent_kafka import Producer, Consumer, KafkaException
-from config.config_setting import get_config
-import subprocess
 import orjson
 
-config = get_config()
+from bytewax.dataflow import Dataflow
+from bytewax.testing import TestingSource, TestingSink, run_main
+
+from confluent_kafka import Producer, Consumer, KafkaException
+from config.config_setting import get_config
+
+from sqlalchemy import create_engine, text
+
+
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+config = get_config()
 
 # Kafka configuration for the test
 kafka_brokers = config.BROKERS
@@ -28,6 +33,9 @@ def setup_bytewax_dataflows():
     # Start the Bytewax dataflows
     pdf_processing = subprocess.Popen(
         ["python", "-m", "bytewax.run", "-w3", "dataflows.pdfProcessing"], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    gateway_service = subprocess.Popen(
+        ["python", "-m", "bytewax.run", "-w3", "dataflows.gateway_service"], stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
     github_commit_processing = subprocess.Popen(
         ["python", "-m", "bytewax.run", "-w3", "dataflows.github_commit_processing"], stdout=subprocess.PIPE,
@@ -49,10 +57,12 @@ def setup_bytewax_dataflows():
     # Terminate the Bytewax dataflows
     github_commit_processing.terminate()
     pdf_processing.terminate()
+    gateway_service.terminate()
     commit_summary_service.terminate()
     qdrant_service.terminate()
     github_commit_processing.wait()
     pdf_processing.wait()
+    gateway_service.wait()
     commit_summary_service.wait()
     qdrant_service.wait()
     logger.info("Bytewax dataflows terminated.")
@@ -129,7 +139,7 @@ def fake_event_data():
 # Generalized Fixture to Create Dataflows
 @pytest.fixture
 def create_dataflow():
-    def _create_dataflow(processing_function, input_data):
+    def _create_dataflow(processing_function, input_data, operator=op.flat_map):
         logger.debug(f"Creating dataflow")
 
         flow = Dataflow(f"Test_Dataflow")
@@ -138,7 +148,7 @@ def create_dataflow():
         op.inspect("check_inp", inp)
 
         # Ensure processing_function is applied with flat_map
-        processed = op.flat_map("process", inp, processing_function)
+        processed = operator("process", inp, processing_function)
 
         op.inspect("check_processed", processed)
 
@@ -248,3 +258,11 @@ def qdrant_event_data():
             "collection_name": f"The Octocat_Hello-World"
         }
     }
+
+@pytest.fixture
+def postgres_engine():
+    db_engine = create_engine(
+        f"postgresql://{config.POSTGRES_USER}:{config.POSTGRES_PASSWORD}@{config.POSTGRES_HOSTNAME}:{config.POSTGRES_PORT}/{config.POSTGRES_DB}"
+    )
+    yield db_engine
+    db_engine.dispose()
