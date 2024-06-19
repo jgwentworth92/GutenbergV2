@@ -1,24 +1,25 @@
 import pytest
+from pydantic_core import ValidationError
+
 from config.config_setting import config
 import logging
 import json
 
+from models.gateway import ResourceModel
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-input_topic = config.INPUT_TOPIC
+RESOURCE_TOPIC=config.RESOURCE_TOPIC
+input_topic = config.GITHUB_TOPIC
 output_topic = config.OUTPUT_TOPIC
 processed_topic = config.PROCESSED_TOPIC
 qdrant_output = config.VECTORDB_TOPIC_NAME
 
-def test_kafka_integration(produce_messages, consume_messages,setup_bytewax_dataflows):
-    # Produce test messages to the input topic
-    test_messages = [
-        {"owner": "octocat", "repo_name": "Hello-World"},
-    ]
+def test_kafka_integration(produce_messages, sample_repo_info_1,consume_messages,setup_bytewax_dataflows):
+
     logger.info("Starting Kafka integration test...")
-    produce_messages(input_topic, test_messages)
+    produce_messages(RESOURCE_TOPIC,  sample_repo_info_1)
     logger.info("Test messages produced to input topic.")
 
     def verify_message_structure(messages):
@@ -49,11 +50,24 @@ def test_kafka_integration(produce_messages, consume_messages,setup_bytewax_data
         '0068cbcb-5978-61bd-7cfa-ffd6482ea12c',
         '258568c8-01cf-d18f-1301-c30d4c686d74']
 
+    try:
+        processed_messages = consume_messages(input_topic, num_messages=6)
+        logger.info(f"Consumed {len(processed_messages)} messages from output topic.")
 
+        for msg in processed_messages:
+            try:
+                # Parse and validate message
+                msg_dict = json.loads(msg)
+                validated_msg = ResourceModel(**msg_dict)
+                logger.info(f"Message validated: {validated_msg}")
+            except (json.JSONDecodeError, ValidationError) as e:
+                logger.error(f"Message validation failed: {e}")
+                assert False, f"Message validation failed: {e}"
 
+    except TimeoutError as e:
+        logger.error(e)
+        assert False, str(e)
 
-
-    # Consume messages from the output topic and verify
     try:
         processed_messages = consume_messages(output_topic, num_messages=6)
         logger.info(f"Consumed {len(processed_messages)} messages from output topic.")
