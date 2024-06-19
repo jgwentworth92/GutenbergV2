@@ -1,5 +1,7 @@
 from typing import Dict, Any, Generator, List, Tuple
 from github import Github, Auth
+from orjson import orjson
+
 from models.commit import CommitData, FileInfo
 from models.document import Document
 from config.config_setting import config
@@ -88,7 +90,7 @@ def fetch_commit_data(args: Tuple[Any, str]) -> CommitData:
     )
 
 
-def fetch_and_emit_commits(repo_info: Dict[str, Any]) -> Generator[str, None, None]:
+def fetch_and_emit_commits(resource_data: Dict[str, Any]) -> Generator[str, None, None]:
     """
     Fetches commits from a repository and processes them into documents.
 
@@ -96,12 +98,10 @@ def fetch_and_emit_commits(repo_info: Dict[str, Any]) -> Generator[str, None, No
     :return: A generator yielding JSON serialized document strings.
     """
     start_time = time.time()
+    repo_info = orjson.loads(resource_data["resource_data"])
     owner = repo_info["owner"]
     repo_name = repo_info["repo_name"]
     repo = fetch_repository(owner, repo_name)
-
-    if repo is None:
-        return
 
     commit_options = {key: value for key, value in repo_info.items() if key not in ["owner", "repo_name"]}
 
