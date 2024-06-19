@@ -1,23 +1,19 @@
 from datetime import timedelta
-
 from bytewax.dataflow import Dataflow
 import bytewax.operators as op
 from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage
-from confluent_kafka import OFFSET_END
 from icecream import ic
-
+from confluent_kafka import OFFSET_STORED
 from config.config_setting import config
 from services.github_service import fetch_and_emit_commits
-from utils.kafka_utils import inspect_output_topic
 import orjson
 
 # Application setup
 brokers = [config.BROKERS]
-input_topic = config.INPUT_TOPIC
+input_topic = config.GITHUB_TOPIC
 output_topic = config.OUTPUT_TOPIC
 consumer_config = config.CONSUMER_CONFIG
 producer_config = config.PRODUCER_CONFIG
-from confluent_kafka import OFFSET_STORED
 
 # Bytewax dataflow setup
 flow = Dataflow("github_commit_processing")
