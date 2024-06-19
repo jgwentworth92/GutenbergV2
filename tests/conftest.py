@@ -34,6 +34,9 @@ def setup_bytewax_dataflows():
     pdf_processing = subprocess.Popen(
         ["python", "-m", "bytewax.run", "-w3", "dataflows.pdfProcessing"], stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
+    gateway_service = subprocess.Popen(
+        ["python", "-m", "bytewax.run", "-w3", "dataflows.gateway_service"], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
     github_commit_processing = subprocess.Popen(
         ["python", "-m", "bytewax.run", "-w3", "dataflows.github_commit_processing"], stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
@@ -54,10 +57,12 @@ def setup_bytewax_dataflows():
     # Terminate the Bytewax dataflows
     github_commit_processing.terminate()
     pdf_processing.terminate()
+    gateway_service.terminate()
     commit_summary_service.terminate()
     qdrant_service.terminate()
     github_commit_processing.wait()
     pdf_processing.wait()
+    gateway_service.wait()
     commit_summary_service.wait()
     qdrant_service.wait()
     logger.info("Bytewax dataflows terminated.")
@@ -134,7 +139,7 @@ def fake_event_data():
 # Generalized Fixture to Create Dataflows
 @pytest.fixture
 def create_dataflow():
-    def _create_dataflow(processing_function, input_data):
+    def _create_dataflow(processing_function, input_data, operator=op.flat_map):
         logger.debug(f"Creating dataflow")
 
         flow = Dataflow(f"Test_Dataflow")
@@ -143,7 +148,7 @@ def create_dataflow():
         op.inspect("check_inp", inp)
 
         # Ensure processing_function is applied with flat_map
-        processed = op.flat_map("process", inp, processing_function)
+        processed = operator("process", inp, processing_function)
 
         op.inspect("check_processed", processed)
 
