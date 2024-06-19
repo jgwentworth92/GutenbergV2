@@ -42,7 +42,15 @@ services:
     depends_on:
       kafka_b:
         condition: service_healthy
-
+  fastapi:
+    container_name:   fastapi
+    image: jgcapworh92/gutenberg-ingestion-api:latest
+    ports:
+      - 8000:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
   gateway_service:
     build: .
     depends_on:
@@ -164,22 +172,34 @@ services:
       - ./kui/config.yml:/etc/kafkaui/dynamic_config.yaml
 
   postgres:
-    image: postgres:latest
-    hostname: postgres
-    container_name: postgres
+    image: postgres:16.2
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "5432:5432"
-    volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      POSTGRES_DB: myappdb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
     command:
       - "postgres"
       - "-c"
       - "wal_level=logical"
-  
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d myappdb" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: adminpassword
+      PGADMIN_LISTEN_PORT: 80
+    depends_on:
+      - postgres
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
   debezium:
     image: debezium/connect:2.6.2.Final
     hostname: debezium
@@ -226,3 +246,5 @@ volumes:
     driver: local
   kafka_data:
     driver: local
+  postgres-data:
+  pgadmin-data:
