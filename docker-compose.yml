@@ -126,8 +126,8 @@ services:
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
       LOCAL_LLM_URL: "${LOCAL_LLM_URL}"
     volumes:
-      - ./recovery/pdf_processing_recovery:/bytewax/recovery/pdf_processing_recovery
-    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/pdf_processing_recovery", "-s", "3", "-b", "0", "-w4", "dataflows/pdfProcessing"]
+      - ./recovery/pdf_service:/bytewax/recovery/pdf_service
+    command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/pdf_service", "-s", "3", "-b", "0", "-w4", "dataflows/pdfProcessing"]
   qdrant:
     image: qdrant/qdrant
     ports:
@@ -174,9 +174,9 @@ services:
   postgres:
     image: postgres:16.2
     environment:
-      POSTGRES_DB: myappdb
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     command:
