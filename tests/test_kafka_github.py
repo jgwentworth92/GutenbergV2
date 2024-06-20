@@ -24,7 +24,7 @@ def test_kafka_integration(produce_messages,kafka_message_factory ,sample_repo_i
             "id": "94f88c26-2b4e-48a5-902a-49bd857e5aa3",
             "job_id": "1502f682-a81d-4dfc-9c8b-fd1e2ad829f2",
             "resource_type": "github",
-            "resource_data": "{\"owner\": \"octocat\", \"repo_name\": \"Spoon-Knife\"}",
+            "resource_data": "{\"owner\": \"octocat\", \"repo_name\": \"Hello-World\"}",
             "created_at": "2024-06-19T21:23:00.884795Z",
             "updated_at": "2024-06-19T21:23:00.884795Z"
         }
@@ -78,10 +78,8 @@ def test_kafka_integration(produce_messages,kafka_message_factory ,sample_repo_i
 
         for msg in processed_messages:
             try:
-                # Parse and validate message
-                msg = json.dumps(msg)
-                validated_msg = ResourceModel.model_validate_json(msg)
-                logger.info(f"Message validated: {validated_msg}")
+                assert msg['resource_type']=="github"
+                assert msg['resource_data']=={"owner": "octocat", "repo_name": "Hello-World"}
             except (json.JSONDecodeError, ValidationError) as e:
                 logger.error(f"Message validation failed for message {msg}: {e}")
                 assert False, f"Message validation failed: {e}"

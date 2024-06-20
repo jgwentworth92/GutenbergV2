@@ -1,6 +1,6 @@
 name: "Github Processing Intergration Testing"
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   test:
