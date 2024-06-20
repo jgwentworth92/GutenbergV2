@@ -11,6 +11,11 @@ from bytewax.dataflow import Dataflow
 
 from confluent_kafka import OFFSET_STORED
 
+from utils.setup_logging import get_logger, setup_logging
+
+setup_logging()
+logger = get_logger(__name__)
+
 
 # Bytewax dataflow setup
 flow = Dataflow("Gateway Service")
@@ -35,9 +40,13 @@ def process_message(msg: KafkaSourceMessage):
     data = orjson.loads(msg.value)
     row = data["payload"]["after"]
     resource_type = row["resource_type"]
-    return KafkaSinkMessage(
-        None, orjson.dumps(row), topic=RESOURCE_TOPIC_MAPPING[resource_type]
-    )
+    logger.info(f"data type submitted to gateway dataflow {resource_type} with payload: {row}")
+
+    if resource_type in RESOURCE_TOPIC_MAPPING:
+        return KafkaSinkMessage(
+            None, orjson.dumps(row), topic=RESOURCE_TOPIC_MAPPING[resource_type]
+        )
+    return None
 
 
 processed_messages = op.map(
@@ -46,6 +55,13 @@ processed_messages = op.map(
     process_message,
 )
 
+# Filter out None values
+valid_messages = op.filter(
+    "filter_valid_messages",
+    processed_messages,
+    lambda msg: msg is not None,
+)
+
 op.output(
-    "kafka-output", processed_messages, KafkaSink(brokers=[config.BROKERS], topic=None)
+    "kafka-output", valid_messages, KafkaSink(brokers=[config.BROKERS], topic=None)
 )
