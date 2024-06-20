@@ -126,7 +126,15 @@ def sample_repo_info_1():
 	"updated_at": "2024-06-19T21:23:00.884795Z"
 }
 
-
+@pytest.fixture
+def kafka_message_factory():
+    def _kafka_message(data):
+        return {
+            "payload": {
+                "after": data
+            }
+        }
+    return _kafka_message
 @pytest.fixture
 def sample_repo_info_2():
     return {

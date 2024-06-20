@@ -16,10 +16,10 @@ output_topic = config.OUTPUT_TOPIC
 processed_topic = config.PROCESSED_TOPIC
 qdrant_output = config.VECTORDB_TOPIC_NAME
 
-def test_kafka_integration(produce_messages, sample_repo_info_1,consume_messages,setup_bytewax_dataflows):
-
+def test_kafka_integration(produce_messages,kafka_message_factory ,sample_repo_info_1,consume_messages,setup_bytewax_dataflows):
+    kafka_message = kafka_message_factory(sample_repo_info_1)
     logger.info("Starting Kafka integration test...")
-    produce_messages(RESOURCE_TOPIC,  sample_repo_info_1)
+    produce_messages(RESOURCE_TOPIC,  kafka_message)
     logger.info("Test messages produced to input topic.")
 
     def verify_message_structure(messages):
