@@ -24,7 +24,7 @@ def test_kafka_integration(produce_messages,kafka_message_factory ,sample_repo_i
 
     try:
         processed_messages = consume_messages(RESOURCE_TOPIC, num_messages=1)
-        logger.info(f"Consumed {len(processed_messages)} messages from output topic.")
+        logger.info(f"Consumed {len(processed_messages)} messages from resource topic.")
         assert len(processed_messages) > 0, "No messages consumed from topic"
         for msg in processed_messages:
             logger.info(f"consumed data from resource topic {msg}")
@@ -62,7 +62,7 @@ def test_kafka_integration(produce_messages,kafka_message_factory ,sample_repo_i
 
     try:
         processed_messages = consume_messages(input_topic, num_messages=6)
-        logger.info(f"Consumed {len(processed_messages)} messages from output topic.")
+        logger.info(f"Consumed {len(processed_messages)} messages from input github topic topic.")
 
         for msg in processed_messages:
             try:
@@ -80,7 +80,7 @@ def test_kafka_integration(produce_messages,kafka_message_factory ,sample_repo_i
 
     try:
         processed_messages = consume_messages(output_topic, num_messages=6)
-        logger.info(f"Consumed {len(processed_messages)} messages from output topic.")
+        logger.info(f"Consumed {len(processed_messages)} messages from github processing dataflow topic.")
         verify_message_structure(processed_messages)
     except TimeoutError as e:
         logger.error(e)
