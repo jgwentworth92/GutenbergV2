@@ -79,11 +79,11 @@ def test_kafka_integration(produce_messages,kafka_message_factory ,sample_repo_i
         for msg in processed_messages:
             try:
                 # Parse and validate message
-
+                msg = json.dumps(msg)
                 validated_msg = ResourceModel.model_validate_json(msg)
                 logger.info(f"Message validated: {validated_msg}")
             except (json.JSONDecodeError, ValidationError) as e:
-                logger.error(f"Message validation failed: {e}")
+                logger.error(f"Message validation failed for message {msg}: {e}")
                 assert False, f"Message validation failed: {e}"
 
     except TimeoutError as e:
