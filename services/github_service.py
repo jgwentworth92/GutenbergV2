@@ -90,46 +90,54 @@ def fetch_commit_data(args: Tuple[Any, str]) -> CommitData:
     )
 
 
-def fetch_and_emit_commits(resource_data: Dict[str, Any]) -> Generator[str, None, None]:
-    """
-    Fetches commits from a repository and processes them into documents.
+def fetch_all_commit_data(commits, repo_name):
+    commit_args = zip(commits, [repo_name] * commits.totalCount)
+    with Pool(processes=cpu_count()) as pool:
+        return list(pool.imap_unordered(fetch_commit_data, commit_args))
 
-    :param repo_info: Dictionary containing repository information.
-    :return: A generator yielding JSON serialized document strings.
-    """
+
+def get_latest_files(all_commit_data):
+    latest_files = {}
+    for commit_data in all_commit_data:
+        for file in commit_data.files:
+            if file.filename not in latest_files or commit_data.date > latest_files[file.filename]['date']:
+                latest_files[file.filename] = {
+                    'file': file,
+                    'commit_id': commit_data.commit_id,
+                    'date': commit_data.date
+                }
+    return latest_files
+
+
+def create_documents(latest_files, all_commit_data):
+    documents = []
+    for file_info in latest_files.values():
+        commit_data = next((cd for cd in all_commit_data if cd.commit_id == file_info['commit_id']), None)
+        if commit_data:
+            document = create_document(file_info['file'], commit_data)
+            if document:
+                documents.append(document)
+    return documents
+
+
+def fetch_and_emit_commits(resource_data: Dict[str, Any]) -> Generator[str, None, None]:
     start_time = time.time()
     repo_info = orjson.loads(resource_data["resource_data"])
     owner = repo_info["owner"]
     repo_name = repo_info["repo_name"]
     repo = fetch_repository(owner, repo_name)
 
+    if not repo:
+        logger.error(f"Failed to fetch repository {owner}/{repo_name}")
+        return
+
     commit_options = {key: value for key, value in repo_info.items() if key not in ["owner", "repo_name"]}
 
     try:
         commits = repo.get_commits(**commit_options)
-
-        commit_args = zip(commits, [repo_name] * commits.totalCount)
-
-        with Pool(processes=cpu_count()) as pool:
-            all_commit_data = list(pool.imap_unordered(fetch_commit_data, commit_args))
-
-        latest_files = {}
-        for commit_data in all_commit_data:
-            for file in commit_data.files:
-                if file.filename not in latest_files or commit_data.date > latest_files[file.filename]['date']:
-                    latest_files[file.filename] = {
-                        'file': file,
-                        'commit_id': commit_data.commit_id,
-                        'date': commit_data.date
-                    }
-
-        documents = [
-            create_document(file_info['file'], commit_data)
-            for file_info in latest_files.values()
-            if (commit_data := next((cd for cd in all_commit_data if cd.commit_id == file_info['commit_id']), None))
-        ]
-
-        documents = [doc for doc in documents if doc is not None]
+        all_commit_data = fetch_all_commit_data(commits, repo_name)
+        latest_files = get_latest_files(all_commit_data)
+        documents = create_documents(latest_files, all_commit_data)
 
         for document in documents:
             yield document.model_dump_json()
