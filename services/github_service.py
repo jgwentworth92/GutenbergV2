@@ -1,39 +1,50 @@
 from typing import Dict, Any, Generator, List, Tuple
-from github import Github, Auth, Commit
+from github import Github, Auth
+from orjson import orjson
+
 from models.commit import CommitData, FileInfo
-from models.document import Document  # Import the Pydantic Document class
+from models.document import Document
 from config.config_setting import config
 from icecream import ic
 from utils.setup_logging import setup_logging, get_logger
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 import time
 
 setup_logging()
 logger = get_logger(__name__)
 
-def create_documents(event_data: CommitData) -> List[Document]:
-    """
-    Creates a list of Document objects from the given commit data.
 
-    Args:
-        event_data (CommitData): The commit data containing file changes and metadata.
-
-    Returns:
-        List[Document]: A list of Document objects created from the commit data.
+def fetch_repository(owner: str, repo_name: str) -> Any:
     """
-    return [create_document(file, event_data) for file in event_data.files]
+    Fetches a GitHub repository object.
+
+    :param owner: Owner of the repository.
+    :param repo_name: Name of the repository.
+    :return: Repository object if found, None otherwise.
+    """
+    try:
+        g = Github(auth=Auth.Token(config.GITHUB_TOKEN))
+        return g.get_repo(f"{owner}/{repo_name}")
+    except Exception as e:
+        logger.error({
+            "error": "Failed to fetch repository",
+            "details": str(e),
+            "repo": f"{owner}/{repo_name}"
+        })
+        return None
+
 
 def create_document(file: FileInfo, event_data: CommitData) -> Document:
     """
-    Creates a Document object from a single file and commit data.
+    Creates a Document object from the provided file and commit data.
 
-    Args:
-        file (FileInfo): Information about the file changes in the commit.
-        event_data (CommitData): The commit data containing metadata.
-
-    Returns:
-        Document: A Document object created from the file and commit data.
+    :param file: Information about the file changed in the commit.
+    :param event_data: Data about the commit.
+    :return: A Document object with the combined data, or None if file contents are None.
     """
+    if file.patch is None:
+        return None
+
     page_content = f"Filename: {file.filename}, Status: {file.status}, Files: {file.patch}"
     metadata = {
         "filename": file.filename,
@@ -52,15 +63,13 @@ def create_document(file: FileInfo, event_data: CommitData) -> Document:
     }
     return Document(page_content=page_content, metadata=metadata)
 
-def fetch_commit_data(args) -> CommitData:
+
+def fetch_commit_data(args: Tuple[Any, str]) -> CommitData:
     """
-    Fetches commit data and creates a CommitData object from it.
+    Fetches commit data and returns a CommitData object.
 
-    Args:
-        args (Tuple[Commit, str]): A tuple containing the commit object and the repository name.
-
-    Returns:
-        CommitData: A CommitData object created from the commit and repository information.
+    :param args: Tuple containing commit object and repository name.
+    :return: A CommitData object with the commit information.
     """
     commit, repo_name = args
     return CommitData(
@@ -80,54 +89,68 @@ def fetch_commit_data(args) -> CommitData:
         ) for file in commit.files]
     )
 
-def fetch_and_emit_commits(repo_info: Dict[str, str]) -> Generator[str, None, None]:
-    """
-    Fetches commits from a GitHub repository and processes them into documents.
 
-    Args:
-        repo_info (Dict[str, str]): A dictionary containing repository information with keys 'owner' and 'repo_name'.
+def fetch_all_commit_data(commits, repo_name):
+    commit_args = zip(commits, [repo_name] * commits.totalCount)
+    with Pool(processes=cpu_count()) as pool:
+        return list(pool.imap_unordered(fetch_commit_data, commit_args))
 
-    Yields:
-        Generator[str, None, None]: A generator yielding JSON strings of processed documents.
-    """
+
+def get_latest_files(all_commit_data):
+    latest_files = {}
+    for commit_data in all_commit_data:
+        for file in commit_data.files:
+            if file.filename not in latest_files or commit_data.date > latest_files[file.filename]['date']:
+                latest_files[file.filename] = {
+                    'file': file,
+                    'commit_id': commit_data.commit_id,
+                    'date': commit_data.date
+                }
+    return latest_files
+
+
+def create_documents(latest_files, all_commit_data):
+    documents = []
+    for file_info in latest_files.values():
+        commit_data = next((cd for cd in all_commit_data if cd.commit_id == file_info['commit_id']), None)
+        if commit_data:
+            document = create_document(file_info['file'], commit_data)
+            if document:
+                documents.append(document)
+    return documents
+
+
+def fetch_and_emit_commits(resource_data: Dict[str, Any]) -> Generator[str, None, None]:
     start_time = time.time()
+    repo_info = orjson.loads(resource_data["resource_data"])
     owner = repo_info["owner"]
     repo_name = repo_info["repo_name"]
-    token = config.GITHUB_TOKEN
-    g = Github(auth=Auth.Token(token))
+    repo = fetch_repository(owner, repo_name)
 
-    logger.info(f"Fetching repository {owner}/{repo_name}")
-    try:
-        repo = g.get_repo(f"{owner}/{repo_name}")
-    except Exception as e:
-        error_message = {
-            "error": "Failed to fetch repository",
-            "details": str(e),
-            "repo": f"{owner}/{repo_name}"
-        }
-        logger.error(error_message)
+    if not repo:
+        logger.error(f"Failed to fetch repository {owner}/{repo_name}")
         return
 
+    commit_options = {key: value for key, value in repo_info.items() if key not in ["owner", "repo_name"]}
+
     try:
-        commits = repo.get_commits()  # Use generator to avoid loading all commits into memory
-        with Pool() as pool:
-            commit_args = ((commit, repo_name) for commit in commits)
-            for commit_data in pool.imap_unordered(fetch_commit_data, commit_args):
-                logger.info(f"Processed commit ID {commit_data.commit_id} for repo {commit_data.repo_name}")
-                documents = create_documents(commit_data)
-                yield [document.model_dump_json() for document in documents]
-                logger.info(f"Processed commit data into {len(documents)} documents for repo {commit_data.repo_name}")
+        commits = repo.get_commits(**commit_options)
+        all_commit_data = fetch_all_commit_data(commits, repo_name)
+        latest_files = get_latest_files(all_commit_data)
+        documents = create_documents(latest_files, all_commit_data)
+
+        for document in documents:
+            yield document.model_dump_json()
+        logger.info(f"Processed combined commit data into {len(documents)} documents for repo {repo_name}")
+
     except Exception as e:
-        error_message = {
+        logger.error({
             "error": "Failed to fetch commits",
             "details": str(e),
             "repo": f"{owner}/{repo_name}"
-        }
-        logger.error(error_message)
-        return
+        })
+
     finally:
         end_time = time.time()
         total_time = end_time - start_time
         logger.info(f"Total time to process commits: {total_time:.2f} seconds")
-
-

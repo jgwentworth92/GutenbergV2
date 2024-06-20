@@ -1,6 +1,8 @@
+from datetime import timedelta
+
 from bytewax.dataflow import Dataflow
 import bytewax.operators as op
-from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage
+from bytewax.connectors.kafka import operators as kop ,KafkaSource, KafkaSink, KafkaSinkMessage
 from icecream import ic
 
 from config.config_setting import config
@@ -21,26 +23,21 @@ flow = Dataflow("commit_summary_service")
 ic(f"the stored offset is {OFFSET_STORED}")
 
 # Create KafkaSource for consuming messages from Kafka
-kafka_input = op.input("kafka-in", flow,
-                       KafkaSource(brokers=brokers, topics=[input_topic],
-                                   add_config=consumer_config))
+kafka_input = kop.input("kafka-in-2", flow, brokers=brokers, topics=[input_topic ])
+op.inspect("inspect_err", kafka_input.errs).then(op.raises, "raise_errors")
 
 # Process each message
-processed_messages = op.flat_map("process_message", kafka_input,
+processed_messages = op.flat_map("process_message", kafka_input.oks,
                                  lambda msg: process_messages(orjson.loads(msg.value)))
 
 # Serialize processed documents
-serialized_messages = op.map("serialize_messages", processed_messages, orjson.dumps)
+keyed_docs = op.key_on("add_key",processed_messages, lambda doc: "llm_summary_key")
+batched_docs = op.collect("collect_docs", keyed_docs, timeout=timedelta(seconds=1), max_size=50)
+keyless_docs = op.map("remove_key", batched_docs, lambda x: (None, x[1]))
 
 # Create KafkaSinkMessages for each serialized document
-kafka_messages = op.map("create_kafka_messages", serialized_messages, lambda x: KafkaSinkMessage(None, x))
+kafka_messages = op.map("create_kafka_messages", keyless_docs, lambda x: KafkaSinkMessage(None, orjson.dumps(x[1])))
 
 # Output serialized messages to Kafka
 op.output("kafka-output", kafka_messages, KafkaSink(brokers=brokers, topic=output_topic))
 
-# Input from Kafka to inspect output topic messages
-kafka_output_input = op.input("kafka-output-input", flow,
-                              KafkaSource(brokers=brokers, topics=[output_topic],
-                                          add_config=consumer_config))
-
-# Inspect the output topic messages

@@ -1,18 +1,24 @@
-name: "Github Processing Intergration Testing"
+name: CI/CD Pipeline
 
-on: [pull_request]
-
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+env:
+    USERNAME: ${{ secrets.DOCKERHUB_USERNAME}}
+    PASSWORD: ${{ secrets.DOCKERHUB_TOKEN}}
 jobs:
   test:
     runs-on: ubuntu-latest
-
     services:
       qdrant:
         image: qdrant/qdrant
         ports:
           - "6333:6333"
           - "6334:6334"
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -51,3 +57,36 @@ jobs:
 
       - name: 🧪 Run Intergration Tests
         run: pytest tests/test_kafka_github.py
+
+  build-and-push-docker:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.USERNAME }}
+          password: ${{ env.PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: jgcapworh92/gutenberg-dataflow:latest # Uses the branch name for tagging
+          platforms: linux/amd64,linux/arm64 # Multi-platform support
+          cache-from: type=registry,ref=jgcapworh92/gutenberg-dataflow:cache
+          cache-to: type=inline,mode=max
+      - name: Scan the Docker image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'jgcapworh92/gutenberg-dataflow:latest'
+          format: 'table'
+          exit-code: '1' # Fail the job if vulnerabilities are found
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'

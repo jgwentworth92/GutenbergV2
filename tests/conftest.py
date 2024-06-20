@@ -76,8 +76,10 @@ def produce_messages():
         }
         producer = Producer(producer_config)
 
-        logger.info(f"Producing {len(messages)} messages to topic '{topic}'...")
+        logger.info(f"Producing {len(messages)} with payload {str(messages)}messages to topic '{topic}'...")
+
         for message in messages:
+            logger.info(f"producing message with data {message}")
             producer.produce(topic, orjson.dumps(message).decode('utf-8'))
 
         producer.flush()
@@ -117,17 +119,46 @@ def consume_messages():
 
 @pytest.fixture
 def sample_repo_info_1():
-    return {"owner": "octocat", "repo_name": "Hello-World"}
-
+    return {
+	"id": "94f88c26-2b4e-48a5-902a-49bd857e5aa3",
+	"job_id": "1502f682-a81d-4dfc-9c8b-fd1e2ad829f2",
+	"resource_type": "github",
+	"resource_data": "{\"owner\": \"octocat\", \"repo_name\": \"Hello-World\"}",
+	"created_at": "2024-06-19T21:23:00.884795Z",
+	"updated_at": "2024-06-19T21:23:00.884795Z"
+}
 
 @pytest.fixture
+def kafka_message_factory():
+    def _kafka_message(data):
+        return {
+            "payload": {
+                "after": data
+            }
+        }
+    return _kafka_message
+@pytest.fixture
 def sample_repo_info_2():
-    return {"owner": "octocat", "repo_name": "Spoon-Knife"}
+    return {
+        "id": "94f88c26-2b4e-48a5-902a-49bd857e5aa3",
+        "job_id": "1502f682-a81d-4dfc-9c8b-fd1e2ad829f2",
+        "resource_type": "github",
+        "resource_data": "{\"owner\": \"octocat\", \"repo_name\": \"Spoon-Knife\"}",
+        "created_at": "2024-06-19T21:23:00.884795Z",
+        "updated_at": "2024-06-19T21:23:00.884795Z"
+    }
 
 
 @pytest.fixture
 def invalid_repo_info():
-    return {"owner": "invalid", "repo_name": "invalid-repo"}
+    return {
+        "id": "94f88c26-2b4e-48a5-902a-49bd857e5aa3",
+        "job_id": "1502f682-a81d-4dfc-9c8b-fd1e2ad829f2",
+        "resource_type": "github",
+        "resource_data": "{\"owner\": \"octocfat\", \"repo_name\": \"Spoon-Knife\"}",
+        "created_at": "2024-06-19T21:23:00.884795Z",
+        "updated_at": "2024-06-19T21:23:00.884795Z"
+    }
 
 
 # Fake Event Data Fixture

@@ -8,9 +8,10 @@ kafka-python-ng
 aiohttp==3.9.0b0
 pydantic-settings
 pytest
-langchain==0.1.14
-langchain-community==0.0.31
-langchain-core==0.1.40
+langchain
+langchain-community
+langchain-core
+langchain-qdrant
 langchain-openai
 qdrant_client
 SQLAlchemy==2.0.29

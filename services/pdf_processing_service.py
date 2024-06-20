@@ -1,6 +1,8 @@
 from typing import Dict, Any, Generator, List
 from langchain_community.document_loaders.pdf import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from orjson import orjson
+
 from config.config_setting import config
 from utils.model_utils import get_openai_chat_model, get_fake_chat_model, get_lmstudio_model
 from utils.setup_logging import get_logger, setup_logging
@@ -23,8 +25,9 @@ def process_pdf(messages: Dict[str, Any]) -> Generator[Dict[str, Any], None, Non
     start_time = time.time()
 
     try:
-        pdf_url = messages["pdf_url"]
-        collection = messages["collection_name"]
+        data=orjson.loads(messages["resource_data"])
+        pdf_url = data["pdf_url"]
+        collection = data["collection_name"]
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=500,
             chunk_overlap=20,

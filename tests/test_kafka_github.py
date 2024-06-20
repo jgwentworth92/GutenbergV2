@@ -1,26 +1,49 @@
 import pytest
+from pydantic_core import ValidationError
+
 from config.config_setting import config
 import logging
 import json
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from models.gateway import ResourceModel
 
-input_topic = config.INPUT_TOPIC
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+RESOURCE_TOPIC=config.RESOURCE_TOPIC
+input_topic = config.GITHUB_TOPIC
 output_topic = config.OUTPUT_TOPIC
 processed_topic = config.PROCESSED_TOPIC
 qdrant_output = config.VECTORDB_TOPIC_NAME
 
-def test_kafka_integration(produce_messages, consume_messages,setup_bytewax_dataflows):
-    # Produce test messages to the input topic
-    test_messages = [
-        {"owner": "octocat", "repo_name": "Hello-World"},
-    ]
+def test_kafka_integration(produce_messages,kafka_message_factory ,sample_repo_info_1,consume_messages,setup_bytewax_dataflows):
     logger.info("Starting Kafka integration test...")
-    produce_messages(input_topic, test_messages)
-    logger.info("Test messages produced to input topic.")
+    kafka_message={
+    "payload": {
+        "after": {
+            "id": "94f88c26-2b4e-48a5-902a-49bd857e5aa3",
+            "job_id": "1502f682-a81d-4dfc-9c8b-fd1e2ad829f2",
+            "resource_type": "github",
+            "resource_data": "{\"owner\": \"octocat\", \"repo_name\": \"Hello-World\"}",
+            "created_at": "2024-06-19T21:23:00.884795Z",
+            "updated_at": "2024-06-19T21:23:00.884795Z"
+        }
+    }
+    }
 
+    produce_messages(RESOURCE_TOPIC,  [kafka_message])
+    logger.info("Test messages produced to input topic.")
+    """
+    try:
+        processed_messages = consume_messages(RESOURCE_TOPIC, num_messages=1)
+        logger.info(f"Consumed {len(processed_messages)} messages from resource topic.")
+        assert len(processed_messages) > 0, "No messages consumed from topic"
+        for msg in processed_messages:
+            logger.info(f"consumed data from resource topic {msg}")
+    except TimeoutError as e:
+        logger.error(e)
+        assert False, str(e)
+    """
     def verify_message_structure(messages):
         assert len(messages) > 0, "No messages consumed from topic"
         for msg in messages:
@@ -49,14 +72,25 @@ def test_kafka_integration(produce_messages, consume_messages,setup_bytewax_data
         '0068cbcb-5978-61bd-7cfa-ffd6482ea12c',
         '258568c8-01cf-d18f-1301-c30d4c686d74']
 
+    try:
+        processed_messages = consume_messages(input_topic, num_messages=6)
+        logger.info(f"Consumed {len(processed_messages)} messages from input github topic topic.")
 
+        for msg in processed_messages:
+            try:
+                assert msg['resource_type']=="github"
+                assert json.loads(msg['resource_data'])=={'owner': 'octocat', 'repo_name': 'Hello-World'}
+            except (json.JSONDecodeError, ValidationError) as e:
+                logger.error(f"Message validation failed for message {msg}: {e}")
+                assert False, f"Message validation failed: {e}"
 
+    except TimeoutError as e:
+        logger.error(e)
+        assert False, str(e)
 
-
-    # Consume messages from the output topic and verify
     try:
         processed_messages = consume_messages(output_topic, num_messages=6)
-        logger.info(f"Consumed {len(processed_messages)} messages from output topic.")
+        logger.info(f"Consumed {len(processed_messages)} messages from github processing dataflow topic.")
         verify_message_structure(processed_messages)
     except TimeoutError as e:
         logger.error(e)
