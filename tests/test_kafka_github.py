@@ -79,7 +79,7 @@ def test_kafka_integration(produce_messages,kafka_message_factory ,sample_repo_i
         for msg in processed_messages:
             try:
                 assert msg['resource_type']=="github"
-                assert msg['resource_data']=={'owner': 'octocat', 'repo_name': 'Hello-World'}
+                assert json.loads(msg['resource_data'])=={'owner': 'octocat', 'repo_name': 'Hello-World'}
             except (json.JSONDecodeError, ValidationError) as e:
                 logger.error(f"Message validation failed for message {msg}: {e}")
                 assert False, f"Message validation failed: {e}"
