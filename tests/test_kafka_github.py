@@ -8,7 +8,7 @@ import json
 from models.gateway import ResourceModel
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 RESOURCE_TOPIC=config.RESOURCE_TOPIC
 input_topic = config.GITHUB_TOPIC

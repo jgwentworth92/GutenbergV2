@@ -21,8 +21,7 @@ jobs:
         uses: spicyparrot/kafka-kraft-action@v1.1.0
         with:
           kafka-version: "3.7.0"
-          kafka-topics: "repos-topic,1,github-commits-out,1,addtovectordb,1,QdrantOutput,1,pdfInput,1"
-
+          kafka-topics: "repos-topic,1,github-commits-out,1,addtovectordb,1,QdrantOutput,1,pdfInput,1,resource_topic,1"
       - name: Set environment variables
         run: |
           echo "GITHUB_TOKEN=${{ secrets.TOKEN_GITHUB }}" >> $GITHUB_ENV
