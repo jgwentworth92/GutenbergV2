@@ -1,4 +1,4 @@
-CREATE TABLE resource (
+CREATE TABLE resources (
     id UUID PRIMARY KEY,
     job_id UUID NOT NULL,
     resource_type TEXT NOT NULL,
@@ -9,4 +9,4 @@ CREATE TABLE resource (
 
 
 
-CREATE PUBLICATION my_publication FOR TABLE public.resource;
+CREATE PUBLICATION my_publication FOR TABLE public.resources;
