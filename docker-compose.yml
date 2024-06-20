@@ -33,7 +33,7 @@ services:
     command: >
       sh -c "
         /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${OUTPUT_TOPIC} &&
-        /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${INPUT_TOPIC} &&
+        /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${GITHUB_TOPIC}  &&
         /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${VECTORDB_TOPIC_NAME} &&
         /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${PDF_INPUT} &&
         /opt/bitnami/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka_b:9094 --replication-factor 1 --partitions 3 --topic ${PROCESSED_TOPIC} &&
@@ -48,6 +48,11 @@ services:
     environment:
       smtp_username: "${smtp_username}"
       smtp_password: "${smtp_password}"
+      postgres_user: "${POSTGRES_USER}"
+      postgres_password: "${POSTGRES_PASSWORD}"
+      postgres_port: "${POSTGRES_PORT}"
+      postgres_db: "${POSTGRES_DB}"
+      postgres_server: "${POSTGRES_HOSTNAME}"
     ports:
       - 8000:8000
     depends_on:
@@ -187,7 +192,7 @@ services:
       - "-c"
       - "wal_level=logical"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U user -d myappdb" ]
+      test:  [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 10s
       timeout: 5s
       retries: 5
