@@ -45,6 +45,9 @@ services:
   fastapi:
     container_name:   fastapi
     image: jgcapworh92/gutenberg-ingestion-api:latest
+    environment:
+      smtp_username: "${smtp_username}"
+      smtp_password: "${smtp_password}"
     ports:
       - 8000:8000
     depends_on:
