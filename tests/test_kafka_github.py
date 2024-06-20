@@ -17,8 +17,20 @@ processed_topic = config.PROCESSED_TOPIC
 qdrant_output = config.VECTORDB_TOPIC_NAME
 
 def test_kafka_integration(produce_messages,kafka_message_factory ,sample_repo_info_1,consume_messages,setup_bytewax_dataflows):
-    kafka_message = kafka_message_factory(sample_repo_info_1)
     logger.info("Starting Kafka integration test...")
+    kafka_message={
+    "payload": {
+        "after": {
+            "id": "94f88c26-2b4e-48a5-902a-49bd857e5aa3",
+            "job_id": "1502f682-a81d-4dfc-9c8b-fd1e2ad829f2",
+            "resource_type": "github",
+            "resource_data": "{\"owner\": \"octocat\", \"repo_name\": \"Spoon-Knife\"}",
+            "created_at": "2024-06-19T21:23:00.884795Z",
+            "updated_at": "2024-06-19T21:23:00.884795Z"
+        }
+    }
+    }
+
     produce_messages(RESOURCE_TOPIC,  kafka_message)
     logger.info("Test messages produced to input topic.")
 
