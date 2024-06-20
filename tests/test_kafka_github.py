@@ -27,7 +27,7 @@ def test_kafka_integration(produce_messages,kafka_message_factory ,sample_repo_i
         logger.info(f"Consumed {len(processed_messages)} messages from output topic.")
         assert len(processed_messages) > 0, "No messages consumed from topic"
         for msg in processed_messages:
-            logger.info(f"consumed data from resource topic {json.loads(msg)}")
+            logger.info(f"consumed data from resource topic {msg}")
     except TimeoutError as e:
         logger.error(e)
         assert False, str(e)
