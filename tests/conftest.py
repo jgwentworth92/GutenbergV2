@@ -77,7 +77,7 @@ def produce_messages():
         producer = Producer(producer_config)
 
         logger.info(f"Producing {len(messages)} with payload {str(messages)}messages to topic '{topic}'...")
-        
+
         for message in messages:
             logger.info(f"producing message with data {message}")
             producer.produce(topic, orjson.dumps(message).decode('utf-8'))

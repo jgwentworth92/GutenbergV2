@@ -31,7 +31,7 @@ def test_kafka_integration(produce_messages,kafka_message_factory ,sample_repo_i
     }
     }
 
-    produce_messages(RESOURCE_TOPIC,  kafka_message)
+    produce_messages(RESOURCE_TOPIC,  [kafka_message])
     logger.info("Test messages produced to input topic.")
     """
     try:

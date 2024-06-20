@@ -27,7 +27,7 @@ def test_kafka_pdf_processing_integration(produce_messages, kafka_message_factor
         "updated_at": "2024-06-19T23:33:49.763648Z"}
     kafka_message = kafka_message_factory(test_messages)
     logger.info("Starting Kafka PDF processing integration test...")
-    produce_messages(pdfinput,test_messages)
+    produce_messages(pdfinput,[test_messages])
     logger.info("Test messages produced to input topic.")
 
     def verify_message_structure(messages):
