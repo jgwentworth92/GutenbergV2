@@ -80,7 +80,7 @@ def test_kafka_integration(produce_messages,kafka_message_factory ,sample_repo_i
             try:
                 # Parse and validate message
 
-                validated_msg = ResourceModel(**msg)
+                validated_msg = ResourceModel.model_validate_json(msg)
                 logger.info(f"Message validated: {validated_msg}")
             except (json.JSONDecodeError, ValidationError) as e:
                 logger.error(f"Message validation failed: {e}")
