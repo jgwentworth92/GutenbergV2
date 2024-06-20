@@ -24,11 +24,10 @@ def test_kafka_pdf_processing_integration(produce_messages, kafka_message_factor
         "resource_type": "pdf",
         "resource_data": "{\"pdf_url\": \"https://unec.edu.az/application/uploads/2014/12/pdf-sample.pdf\", \"collection_name\": \"pdftest\"}",
         "created_at": "2024-06-19T23:33:49.763648Z",
-        "updated_at": "2024-06-19T23:33:49.763648Z"
-    }
+        "updated_at": "2024-06-19T23:33:49.763648Z"}
     kafka_message = kafka_message_factory(test_messages)
     logger.info("Starting Kafka PDF processing integration test...")
-    produce_messages(resource_topic, kafka_message)
+    produce_messages(pdfinput,test_messages)
     logger.info("Test messages produced to input topic.")
 
     def verify_message_structure(messages):
