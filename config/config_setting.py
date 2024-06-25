@@ -6,7 +6,7 @@ from typing import Optional, Dict
 from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Base Configuration Class"""
-    APP_NAME: str
+    APP_NAME: Optional[str] = "Gutenberg"
     TITLE: str = "Kafka Consumer Vector DB ingestors"
     DESCRIPTION: str = "Service consuming Kafka topics and adding to vector db."
     VECTOR_DB_HOST: str = "qdrant"
