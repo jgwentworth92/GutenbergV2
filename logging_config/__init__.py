@@ -33,19 +33,6 @@ def get_logger(logger_name=APP_NAME, module_name=None):
         return logging.getLogger(logger_name or APP_NAME).getChild(module_name)
     else:
         return logging.getLogger(logger_name)
-
-def get_multiprocessing_logger():
-    """
-    Get multiprocessing logger
-    """
-    logger = multiprocessing.get_logger
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(logging.StreamHandler(sys.stdout))
-    logger.handlers[0].setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(name)s: %(message)s'))
-    logger.propagate = False
-    logger.addHandler(logging.FileHandler(os.path.join(LOG_DIR, 'multiprocessing.log')))
-    return logger
-
 # Define the logging configuration
 LOGGING_CONFIG = {
     'version': 1,
