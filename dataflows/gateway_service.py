@@ -11,20 +11,16 @@ from bytewax.dataflow import Dataflow
 
 from confluent_kafka import OFFSET_STORED
 
-from utils.setup_logging import get_logger, setup_logging
+from logging_config import setup_logging, get_logger
 
 setup_logging()
+
 logger = get_logger(__name__)
 
-
-# Bytewax dataflow setup
 flow = Dataflow("Gateway Service")
-ic(f"the stored offset is {OFFSET_STORED}")
-
 
 RESOURCE_TOPIC_MAPPING = {"github": config.GITHUB_TOPIC, "pdf": config.PDF_INPUT}
 
-# Create KafkaSource for consuming messages from Kafka
 kafka_input = op.input(
     "read-kafka-message",
     flow,

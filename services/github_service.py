@@ -2,11 +2,11 @@ from typing import Dict, Any, Generator, List, Tuple
 from github import Github, Auth
 from orjson import orjson
 
+from logging_config import setup_logging, get_logger
 from models.commit import CommitData, FileInfo
 from models.document import Document
 from config.config_setting import config
 from icecream import ic
-from utils.setup_logging import setup_logging, get_logger
 from multiprocessing import Pool, cpu_count
 import time
 
@@ -34,12 +34,13 @@ def fetch_repository(owner: str, repo_name: str) -> Any:
         return None
 
 
-def create_document(file: FileInfo, event_data: CommitData) -> Document:
+def create_document(file: FileInfo, event_data: CommitData, job_id: str) -> Document:
     """
-    Creates a Document object from the provided file and commit data.
+    Creates a Document object from the provided file, commit data, and job ID.
 
     :param file: Information about the file changed in the commit.
     :param event_data: Data about the commit.
+    :param job_id: The job ID to be passed along to the next service.
     :return: A Document object with the combined data, or None if file contents are None.
     """
     if file.patch is None:
@@ -57,6 +58,7 @@ def create_document(file: FileInfo, event_data: CommitData) -> Document:
         "repo_name": event_data.repo_name,
         "commit_url": event_data.url,
         "id": event_data.commit_id,
+        "job_id": job_id,  # Include the job ID here
         "token_count": len(page_content.split()),
         "collection_name": f"{event_data.repo_name}",
         "vector_id": event_data.commit_id + file.filename
@@ -109,20 +111,22 @@ def get_latest_files(all_commit_data):
     return latest_files
 
 
-def create_documents(latest_files, all_commit_data):
+def create_documents(latest_files, all_commit_data, job_id):
     documents = []
     for file_info in latest_files.values():
         commit_data = next((cd for cd in all_commit_data if cd.commit_id == file_info['commit_id']), None)
         if commit_data:
-            document = create_document(file_info['file'], commit_data)
+            document = create_document(file_info['file'], commit_data, job_id)
             if document:
                 documents.append(document)
     return documents
 
 
+
 def fetch_and_emit_commits(resource_data: Dict[str, Any]) -> Generator[str, None, None]:
     start_time = time.time()
     repo_info = orjson.loads(resource_data["resource_data"])
+    job_id = resource_data["job_id"]
     owner = repo_info["owner"]
     repo_name = repo_info["repo_name"]
     repo = fetch_repository(owner, repo_name)
@@ -137,7 +141,7 @@ def fetch_and_emit_commits(resource_data: Dict[str, Any]) -> Generator[str, None
         commits = repo.get_commits(**commit_options)
         all_commit_data = fetch_all_commit_data(commits, repo_name)
         latest_files = get_latest_files(all_commit_data)
-        documents = create_documents(latest_files, all_commit_data)
+        documents = create_documents(latest_files, all_commit_data,job_id)
 
         for document in documents:
             yield document.model_dump_json()

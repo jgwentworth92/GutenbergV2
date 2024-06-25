@@ -4,8 +4,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from orjson import orjson
 
 from config.config_setting import config
+from logging_config import get_logger, setup_logging
 from utils.model_utils import get_openai_chat_model, get_fake_chat_model, get_lmstudio_model
-from utils.setup_logging import get_logger, setup_logging
 from models.document import Document
 import time
 
@@ -26,6 +26,7 @@ def process_pdf(messages: Dict[str, Any]) -> Generator[Dict[str, Any], None, Non
 
     try:
         data=orjson.loads(messages["resource_data"])
+        job_id=messages["job_id"]
         pdf_url = data["pdf_url"]
         collection = data["collection_name"]
         text_splitter = RecursiveCharacterTextSplitter(
@@ -45,6 +46,7 @@ def process_pdf(messages: Dict[str, Any]) -> Generator[Dict[str, Any], None, Non
 
             extra_metadata = {
                 "collection_name": collection,
+                "job_id": job_id,
                 "vector_id": f"{pdf_url} page {str(doc.metadata['page'])} for chunk {str(page_number)}"
             }
             combined_metadata = {**doc.metadata, **extra_metadata}

@@ -3,10 +3,10 @@ import uuid
 from typing import Generator, Dict, Any, List
 
 from config.config_setting import config
+from logging_config import setup_logging, get_logger
 from models.document import Document
 from utils.get_qdrant import get_qdrant_vector_store
 from utils.model_utils import setup_embedding_model
-from utils.setup_logging import get_logger, setup_logging
 
 setup_logging()
 logging = get_logger(__name__)
