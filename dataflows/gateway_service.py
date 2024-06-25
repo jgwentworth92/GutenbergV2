@@ -1,20 +1,11 @@
 import orjson
-
 from config.config_setting import config
-
-from icecream import ic
-
 from bytewax import operators as op
 from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage, KafkaSourceMessage
 from bytewax.dataflow import Dataflow
-
-
-from confluent_kafka import OFFSET_STORED
-
-from logging_config import setup_logging, get_logger
+from logging_config import get_logger, setup_logging
 
 setup_logging()
-
 logger = get_logger(__name__)
 
 flow = Dataflow("Gateway Service")

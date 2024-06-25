@@ -6,8 +6,9 @@ from confluent_kafka import OFFSET_STORED
 from icecream import ic
 
 from config.config_setting import config
+from logging_config import setup_logging
 from services.vectordb_service import process_message_to_vectordb
-
+setup_logging()
 # Application setup
 brokers = [config.BROKERS]
 input_topic = config.PROCESSED_TOPIC
