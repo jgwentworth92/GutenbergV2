@@ -1,16 +1,13 @@
-from typing import Dict, Any, Generator, List, Tuple
+import time
+from multiprocessing import Pool, cpu_count
+from typing import Dict, Any, Generator, Tuple
 from github import Github, Auth
 from orjson import orjson
-
-from logging_config import setup_logging, get_logger
+from config.config_setting import config
+from logging_config import get_logger
 from models.commit import CommitData, FileInfo
 from models.document import Document
-from config.config_setting import config
-from icecream import ic
-from multiprocessing import Pool, cpu_count
-import time
 
-setup_logging()
 logger = get_logger(__name__)
 
 

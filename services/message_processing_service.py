@@ -1,12 +1,11 @@
 from typing import Dict, Any, Generator, List
-
-from logging_config import setup_logging, get_logger
+from logging_config import get_logger
 from utils.langchain_callback_logger import MyCustomHandler
 from utils.model_utils import setup_chat_model
 from models.document import Document
 import time
 
-setup_logging()
+
 logger = get_logger(__name__)
 
 

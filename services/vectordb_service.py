@@ -3,12 +3,11 @@ import uuid
 from typing import Generator, Dict, Any, List
 
 from config.config_setting import config
-from logging_config import setup_logging, get_logger
+from logging_config import get_logger
 from models.document import Document
 from utils.get_qdrant import get_qdrant_vector_store
 from utils.model_utils import setup_embedding_model
 
-setup_logging()
 logging = get_logger(__name__)
 
 def generate_uuid_from_string(val: str) -> uuid.UUID:

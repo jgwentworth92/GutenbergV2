@@ -1,15 +1,11 @@
+import time
 from typing import Dict, Any, Generator, List
 from langchain_community.document_loaders.pdf import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from orjson import orjson
-
-from config.config_setting import config
-from logging_config import get_logger, setup_logging
-from utils.model_utils import get_openai_chat_model, get_fake_chat_model, get_lmstudio_model
+from logging_config import get_logger
 from models.document import Document
-import time
 
-setup_logging()
 logger = get_logger(__name__)
 
 def process_pdf(messages: Dict[str, Any]) -> Generator[Dict[str, Any], None, None]:
