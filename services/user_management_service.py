@@ -21,8 +21,10 @@ class UserManagementClient:
         filtered_data = [
             item for item in data if item["step_type"] == STEP_TYPE_MAPPING[service]
         ]
-        assert len(filtered_data) == 1, f"Found multiple steps for {service}"
-        assert len(filtered_data) != 0, f"No step found for {service}"
+        assert (
+            len(filtered_data) <= 1
+        ), f"Found multiple steps for {service} {filtered_data}"
+        assert len(filtered_data) > 0, f"No step found for {service}"
         return filtered_data[0]["id"]
 
     def update_status(self, service: Service, job_id: str, status: StepStatus):
