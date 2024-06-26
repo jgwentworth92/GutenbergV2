@@ -48,6 +48,7 @@ def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any],
 
     try:
         collection_name = documents[0].metadata['collection_name']
+        job_id=documents[0].metadata['job_id']
         logging.info(f"Received request for {documents[0].metadata['collection_name']}")
         embed = setup_embedding_model()
         vectordb = get_qdrant_vector_store(host=config.VECTOR_DB_HOST, port=config.VECTOR_DB_PORT,
@@ -59,9 +60,10 @@ def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any],
 
         added_ids = vectordb.add_texts(texts=texts, metadatas=metadatas, ids=ids)
 
-        result_message = {"collection_name": collection_name, "id": added_ids}
         logging.info(f"Processed {len(added_ids)} documents into vectordb collection")
-        yield result_message
+        for id in added_ids:
+            result_message = {"collection_name": collection_name, "vector_db_id": id, "job_id": job_id}
+            yield result_message
     except Exception as e:
         logging.error(f"Failed to add documents to Qdrant: {e}")
 
