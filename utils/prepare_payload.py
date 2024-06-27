@@ -1,3 +1,6 @@
+import datetime
+
+
 def prepare_payload(keyed_item) -> any:
     """
     Transform the keyed data item into the required JSON structure for the FastAPI endpoint.
@@ -5,7 +8,6 @@ def prepare_payload(keyed_item) -> any:
     :param keyed_item: Tuple containing the key (job_id) and the item dictionary.
     :return: Dictionary formatted for the FastAPI endpoint.
     """
-
 
     rtn = []
     for item in keyed_item:
