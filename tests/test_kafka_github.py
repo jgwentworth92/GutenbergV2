@@ -33,17 +33,7 @@ def test_kafka_integration(produce_messages,kafka_message_factory ,sample_repo_i
 
     produce_messages(RESOURCE_TOPIC,  [kafka_message])
     logger.info("Test messages produced to input topic.")
-    """
-    try:
-        processed_messages = consume_messages(RESOURCE_TOPIC, num_messages=1)
-        logger.info(f"Consumed {len(processed_messages)} messages from resource topic.")
-        assert len(processed_messages) > 0, "No messages consumed from topic"
-        for msg in processed_messages:
-            logger.info(f"consumed data from resource topic {msg}")
-    except TimeoutError as e:
-        logger.error(e)
-        assert False, str(e)
-    """
+
     def verify_message_structure(messages):
         assert len(messages) > 0, "No messages consumed from topic"
         for msg in messages:
@@ -59,7 +49,7 @@ def test_kafka_integration(produce_messages,kafka_message_factory ,sample_repo_i
             metadata = msg['metadata']
             required_fields = [
                 "id", "author", "date", "repo_name", "commit_url",
-                "filename", "status", "additions", "deletions", "changes"
+                "filename", "status", "additions", "deletions", "changes","job_id"
             ]
             for field in required_fields:
                 assert field in metadata, f"Missing '{field}' in metadata: {metadata}"

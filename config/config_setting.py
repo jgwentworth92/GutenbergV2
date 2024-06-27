@@ -6,7 +6,7 @@ from typing import Optional, Dict
 from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Base Configuration Class"""
-    APP_NAME: str = "Kafka Consumer with vector data base additions"
+    APP_NAME: Optional[str] = "Gutenberg"
     TITLE: str = "Kafka Consumer Vector DB ingestors"
     DESCRIPTION: str = "Service consuming Kafka topics and adding to vector db."
     VECTOR_DB_HOST: str = "qdrant"
@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     PROCESSED_TOPIC: Optional[str] = None
     VECTORDB_TOPIC_NAME:Optional[str] = "vectordb_added_doc"
     LOCAL_LLM_URL: str
+    APP_ROOT_DIRECTORY: str = os.getcwd()
+
+    LOG_DIRECTORY: str = os.path.join(APP_ROOT_DIRECTORY, "logs")
+
     model_config = ConfigDict(env_file=".env", env_file_encoding='utf-8', extra=None)
 
     @classmethod

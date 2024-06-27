@@ -14,11 +14,11 @@ from config.config_setting import get_config
 
 from sqlalchemy import create_engine, text
 
+from logging_config import setup_logging, get_logger
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
+setup_logging()
+logger = get_logger(__name__)
 config = get_config()
 
 # Kafka configuration for the test

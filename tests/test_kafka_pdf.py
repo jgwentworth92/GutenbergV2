@@ -52,7 +52,7 @@ def test_kafka_pdf_processing_integration(produce_messages, kafka_message_factor
                 assert "metadata" in m, f"Missing 'metadata' in {m}"
                 metadata = m['metadata']
                 required_fields = [
-                    "vector_id", "collection_name", "page"
+                    "vector_id", "collection_name", "page","job_id"
                 ]
                 for field in required_fields:
                     assert field in metadata, f"Missing '{field}' in metadata: {metadata}"
