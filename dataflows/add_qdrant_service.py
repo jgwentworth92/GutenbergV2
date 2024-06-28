@@ -21,6 +21,7 @@ logger = get_logger(__name__)
 brokers = config.BROKERS
 input_topic = config.PROCESSED_TOPIC
 consumer_config = config.CONSUMER_CONFIG
+auth_header = {"Accept": "application/json", "Content-Type": "application/json"}
 
 # Create Bytewax dataflow
 flow = Dataflow("add_to_vector_db_service")
@@ -41,13 +42,11 @@ batched_messages = op.collect(
     "batch_records_by_key",
     keyed_messages,
     timeout=timedelta(seconds=10),  # Collect into batches every 10 seconds
-    max_size=10  # or when the batch size reaches 10
+    max_size=40  # or when the batch size reaches 10
 )
 
 # Define API settings for the custom sink
-url = "http://fastapi:8000/api/documents/"
-auth_header = {"Accept": "application/json", "Content-Type": "application/json"}
 keyless_docs = op.map("remove_key", batched_messages, lambda x: (x[1]))
 
 # Output to the FastAPI using the FastAPISink
-op.output("api-output", keyless_docs, FastAPISink(url, auth_header, prepare_payload))
+op.output("api-output", keyless_docs, FastAPISink(config.DOCUMENT_BATCH_ENDPOINT, auth_header, prepare_payload))
