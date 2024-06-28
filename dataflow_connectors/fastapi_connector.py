@@ -26,12 +26,11 @@ class FastAPIConnector(StatelessSinkPartition):
         for item in items:
             logger.info(f"passed in data is {item}")
             payloads = self.prepare_payload(item)
-            for payload in payloads:
-                try:
-                    response = self.client.post(self.url, headers=self.auth_header, json=payload)
-                    response.raise_for_status()
-                except Exception as e:
-                    logger.error(f"An error occurred: {e} with data {payload}")
+            try:
+                response = self.client.post(self.url, headers=self.auth_header, json=payloads)
+                response.raise_for_status()
+            except Exception as e:
+                logger.error(f"An error occurred: {e} with data {payloads}")
 
     def close(self) -> None:
         """
