@@ -90,7 +90,7 @@ def fetch_commit_data(args: Tuple[Any, str]) -> CommitData:
 
 
 def fetch_all_commit_data(commits, repo_name):
-    commit_args = zip(commits, [repo_name] * commits.totalCount)
+    commit_args = [(commit, repo_name) for commit in commits]
     with Pool(processes=cpu_count()) as pool:
         return list(pool.imap_unordered(fetch_commit_data, commit_args))
 
