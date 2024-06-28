@@ -8,8 +8,11 @@ import orjson
 
 from bytewax.dataflow import Dataflow
 from bytewax.testing import TestingSource, TestingSink, run_main
-
+import pytest
+from unittest.mock import patch, MagicMock
 from confluent_kafka import Producer, Consumer, KafkaException
+from github import Github, Auth
+
 from config.config_setting import get_config
 
 from sqlalchemy import create_engine, text
@@ -27,6 +30,36 @@ input_topic = config.INPUT_TOPIC
 output_topic = config.OUTPUT_TOPIC
 processed_topic = config.PROCESSED_TOPIC
 
+github_token = config.GITHUB_TOKEN
+from models.document import Document
+
+
+
+@pytest.fixture
+def sample_messages(sample_documents):
+    return [doc.model_dump_json() for doc in sample_documents]
+@pytest.fixture
+def github_client():
+    return Github(auth=Auth.Token(github_token))
+
+@pytest.fixture
+def mock_httpx_client():
+    with patch('httpx.Client') as mock_client:
+        yield mock_client
+
+@pytest.fixture
+def sample_auth_header():
+    return {"Authorization": "Bearer test_token"}
+
+@pytest.fixture
+def sample_url():
+    return "https://api.example.com/endpoint"
+
+@pytest.fixture
+def sample_prepare_payload():
+    def prepare(item):
+        return [{"key": "value"}]
+    return prepare
 @pytest.fixture(scope="module")
 def setup_bytewax_dataflows():
     logger.info("Starting Bytewax dataflows...")
@@ -116,7 +149,16 @@ def consume_messages():
 
     return _consume_messages
 
-
+@pytest.fixture
+def sample_pdf_input():
+    return {
+        "id": "3dc6752c-b27a-4243-8fe2-810bf482313b",
+        "job_id": "02ccd381-76e7-47ee-9346-b69df29cc640",
+        "resource_type": "pdf",
+        "resource_data": "{\"pdf_url\": \"https://unec.edu.az/application/uploads/2014/12/pdf-sample.pdf\", \"collection_name\": \"pdftest\"}",
+        "created_at": "2024-06-19T23:33:49.763648Z",
+        "updated_at": "2024-06-19T23:33:49.763648Z"
+    }
 @pytest.fixture
 def sample_repo_info_1():
     return {
@@ -166,7 +208,9 @@ def invalid_repo_info():
 def fake_event_data():
     return ["{\"page_content\":\"Filename: README, Status: added, Files: @@ -0,0 +1 @@\\n+Hello World!\\n\\\\ No newline at end of file\",\"metadata\":{\"filename\":\"README\",\"job_id\":\"1502f682-a81d-4dfc-9c8b-fd1e2ad829f2\",\"status\":\"added\",\"additions\":1,\"deletions\":0,\"changes\":1,\"author\":\"cameronmcefee\",\"date\":\"2011-01-26T19:06:08+00:00\",\"repo_name\":\"Hello-World\",\"commit_url\":\"https://github.com/octocat/Hello-World/commit/553c2077f0edc3d5dc5d17262f6aa498e69d6f8e\",\"id\":\"553c2077f0edc3d5dc5d17262f6aa498e69d6f8e\",\"token_count\":18,\"collection_name\":\"Hello-World\",\"vector_id\":\"553c2077f0edc3d5dc5d17262f6aa498e69d6f8eREADME\"},\"type\":\"Document\"}"]
 
-
+@pytest.fixture
+def sample_documents(fake_event_data):
+    return [Document.model_validate_json(doc_json) for doc_json in fake_event_data]
 # Generalized Fixture to Create Dataflows
 @pytest.fixture
 def create_dataflow():
