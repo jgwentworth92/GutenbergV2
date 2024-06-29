@@ -43,6 +43,7 @@ def process_pdf(messages: Dict[str, Any]) -> Generator[Dict[str, Any], None, Non
             extra_metadata = {
                 "collection_name": collection,
                 "job_id": job_id,
+                "doc_type":"raw",
                 "vector_id": f"{pdf_url} page {str(doc.metadata['page'])} for chunk {str(page_number)}"
             }
             combined_metadata = {**doc.metadata, **extra_metadata}
