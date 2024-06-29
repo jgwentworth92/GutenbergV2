@@ -45,7 +45,7 @@ class FastAPIConnector(StatelessSinkPartition):
 
 
 class FastAPISink(DynamicSink):
-    def __init__(self, url: str, auth_header: Dict[str, str], prepare_payload: Callable[[Any], Dict]):
+    def __init__(self, url: str, auth_header: Dict[str, str], prepare_payload: Callable[[Any], List[Dict]]):
         """
         Initializes the dynamic sink with the URL, authentication details, and a function to prepare payloads.
 
