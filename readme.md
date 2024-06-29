@@ -122,6 +122,7 @@ my_project/
    python -m bytewax.recovery recovery/add_qdrant_service 4
    python -m bytewax.recovery recovery/gateway_service 4
    python -m bytewax.recovery recovery/pdf_service 4
+
    ```
 
     This ensures that Bytewax can recover from failures and continue processing. 
@@ -130,24 +131,28 @@ my_project/
 5. **Set up your environment variables:**
    Create a `.env` file in the root directory and add the required environment variables:
     ```env
-   GITHUB_TOKEN=your_github_token
+   GITHUB_TOKEN=[your_github_token]
    BROKERS="kafka_b:9094"
    INPUT_TOPIC=repos-topic
    OUTPUT_TOPIC=github-commits-out
    PROCESSED_TOPIC=addtovectordb
-   VECTORDB_TOPIC_NAME="QdrantOutput"
    CONSUMER_CONFIG={"bootstrap.servers": "kafka_b:9094","auto.offset.reset": "earliest","group.id": "consumer_group","enable.auto.commit": "True"}
    PRODUCER_CONFIG={"bootstrap.servers": "kafka_b:9094"}
    OPENAI_API_KEY=your_openai_api_key
-   MODEL_PROVIDER=fake
    TEMPLATE = "You are an assistant whose job is to create detailed descriptions of what the provided code files do.Please review the code below and explain its functionality in detail.Code:{text}"
-   LOCAL_LLM_URL = "http://[your_ip_address]:1234/v1"
-
+   VECTORDB_TOPIC_NAME="QdrantOutput"
    POSTGRES_HOSTNAME=postgres
    POSTGRES_PORT=5432
-   POSTGRES_USER=admin
-   POSTGRES_DB=db
-   POSTGRES_PASSWORD=admin
+   POSTGRES_USER=[user]
+   POSTGRES_DB=myappdb
+   POSTGRES_PASSWORD=[password]
+   RESOURCE_TOPIC=resource_topic
+   PDF_INPUT=pdfInput
+   MODEL_PROVIDER="fake"
+   LOCAL_LLM_URL = "http://[your_ip_address]:1234/v1"
+   smtp_username=[username]
+   smtp_password=[password]
+   GITHUB_TOPIC=github_topic
    ```
    ### Using OpenAI
    1. **Set up OpenAI API key:**
@@ -167,6 +172,8 @@ my_project/
       Set the `LOCAL_LLM_URL` environment variable to the URL of the local model server in the `.env` file. In the case of LMStudio, the URL is `http://[your_ip_address]:1234/v1`. Make sure to use the correct IP address for your computer, as Docker containers cannot access `localhost`.
 
    ### Using a Fake Model
+
+   The fake model enables the system to bypass the use of a real API. It’s a straightforward and rapid solution, making it particularly useful for testing purposes.
 
    1. **Set the model provider to Fake:**
       Set the `MODEL_PROVIDER` environment variable to `fake` in the `.env` file.
