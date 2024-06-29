@@ -11,7 +11,7 @@ from confluent_kafka import OFFSET_STORED
 
 from logging_config import setup_logging
 from services.message_processing_service import process_messages
-setup_logging()
+
 # Application setup
 brokers = [config.BROKERS]
 input_topic = config.OUTPUT_TOPIC
