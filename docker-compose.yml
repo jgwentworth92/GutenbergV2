@@ -228,6 +228,7 @@ services:
     depends_on:
       - kafka_b
       - postgres
+      - fastapi
     environment:
       BOOTSTRAP_SERVERS: kafka_b:9094
       GROUP_ID: 1
