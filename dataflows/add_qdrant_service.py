@@ -8,8 +8,9 @@ from config.config_setting import config
 from dataflow_connectors.fastapi_connector import FastAPISink
 from logging_config import setup_logging, get_logger
 from services.vectordb_service import process_message_to_vectordb
-from utils.prepare_payload import prepare_payload
+from utils.dataflow_processing_utils import prepare_payload
 
+setup_logging()
 logger = get_logger(__name__)
 
 

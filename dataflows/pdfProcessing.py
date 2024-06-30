@@ -1,10 +1,13 @@
 from datetime import timedelta
-from bytewax.dataflow import Dataflow
 import bytewax.operators as op
-from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage
-from config.config_setting import config
-from services.pdf_processing_service import process_pdf
 import orjson
+from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage
+from bytewax.dataflow import Dataflow
+from config.config_setting import config
+from logging_config import setup_logging
+from services.pdf_processing_service import process_pdf
+
+setup_logging()
 # Application setup
 brokers = [config.BROKERS]
 input_topic = config.PDF_INPUT
