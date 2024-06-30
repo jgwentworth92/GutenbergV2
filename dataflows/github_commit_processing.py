@@ -5,9 +5,10 @@ from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage
 from icecream import ic
 from confluent_kafka import OFFSET_STORED
 from config.config_setting import config
+from logging_config import setup_logging
 from services.github_service import fetch_and_emit_commits
 import orjson
-
+setup_logging()
 # Application setup
 brokers = [config.BROKERS]
 input_topic = config.GITHUB_TOPIC

@@ -1,11 +1,11 @@
 from typing import Dict, Any, Generator, List
+from logging_config import get_logger
 from utils.langchain_callback_logger import MyCustomHandler
 from utils.model_utils import setup_chat_model
-from utils.setup_logging import get_logger, setup_logging
 from models.document import Document
 import time
 
-setup_logging()
+
 logger = get_logger(__name__)
 
 
@@ -19,6 +19,7 @@ def prepare_batch_inputs(documents: List[Document]) -> List[Dict[str, str]]:
     Returns:
         List[Dict[str, str]]: A list of dictionaries containing the document content.
     """
+
     return [{"text": doc.page_content} for doc in documents]
 
 

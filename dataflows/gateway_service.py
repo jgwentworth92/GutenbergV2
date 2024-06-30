@@ -1,9 +1,5 @@
 import orjson
-
 from config.config_setting import config
-
-from icecream import ic
-
 from bytewax import operators as op
 from bytewax.connectors.kafka import (
     KafkaSource,
@@ -12,26 +8,17 @@ from bytewax.connectors.kafka import (
     KafkaSourceMessage,
 )
 from bytewax.dataflow import Dataflow
-
-
-from confluent_kafka import OFFSET_STORED
-
 from dataflows import constants
-from utils.setup_logging import get_logger, setup_logging
 from services.user_management_service import user_management_service
+from logging_config import get_logger, setup_logging
 
 setup_logging()
 logger = get_logger(__name__)
 
-
-# Bytewax dataflow setup
 flow = Dataflow("Gateway Service")
-ic(f"the stored offset is {OFFSET_STORED}")
-
 
 RESOURCE_TOPIC_MAPPING = {"github": config.GITHUB_TOPIC, "pdf": config.PDF_INPUT}
 
-# Create KafkaSource for consuming messages from Kafka
 kafka_input = op.input(
     "read-kafka-message",
     flow,

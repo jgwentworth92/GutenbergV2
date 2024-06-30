@@ -1,20 +1,15 @@
 from logging import Logger
-
-from langchain_core.callbacks import  BaseCallbackHandler
-
-
+from langchain_core.callbacks import BaseCallbackHandler
 
 class MyCustomHandler(BaseCallbackHandler):
-    def __init__(self, logger:Logger):
+    def __init__(self, logger: Logger):
         """
+        Initialize the custom handler with a specific logger.
+
         Args:
-            model_name (str, optional): The name of the model to use. Defaults to config.SERVICE_MODEL.
-            agent (str, optional): The name of the agent to use. Defaults to "Brandi".
-            verbose (bool, optional): Whether to print debug information. Defaults to True.
-            streaming (bool, optional): Whether to use streaming or not. Defaults to True.
+            logger (Logger): A Logger object used for logging events and messages within this handler. It logs various actions and events occurring throughout the lifecycle of language model operations, including token generation, process starts and ends, and errors.
         """
         self.logger = logger
-
 
     def on_llm_new_token(self, token: str, **kwargs) -> None:
         self.logger.info(f"New token: {token}")
