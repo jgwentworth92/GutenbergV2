@@ -1,7 +1,7 @@
 import requests
 
 from config.config_setting import config
-from dataflows.constants import Service, StepStatus, STEP_TYPE_MAPPING
+from models.constants import Service, StepStatus, STEP_TYPE_MAPPING
 from logging_config import get_logger
 
 

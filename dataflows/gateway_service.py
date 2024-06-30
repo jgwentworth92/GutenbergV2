@@ -8,7 +8,7 @@ from bytewax.connectors.kafka import (
     KafkaSourceMessage,
 )
 from bytewax.dataflow import Dataflow
-from dataflows import constants
+from models import constants
 from services.user_management_service import user_management_service
 from logging_config import get_logger, setup_logging
 
