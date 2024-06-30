@@ -21,11 +21,11 @@ def get_fake_chat_model():
 
 def setup_chat_model():
     if config.MODEL_PROVIDER == 'openai':
-        ic("open ai model is being used")
         model_setup_function = get_openai_chat_model
     elif config.MODEL_PROVIDER == 'fake':
-        ic("Fake model is being used")
         model_setup_function = get_fake_chat_model
+    elif config.MODEL_PROVIDER == 'lmstudio':
+        model_setup_function = get_lmstudio_model
     else:
         raise ValueError(f"Unsupported chat model provider: {config.MODEL_PROVIDER}")
     chat_model = model_setup_function()
@@ -34,16 +34,20 @@ def setup_chat_model():
 def get_openai_embedding_model():
     return OpenAIEmbeddings(openai_api_key=config.OPENAI_API_KEY)
 
+def get_lmstudio_model():
+    client = ChatOpenAI(base_url=config.LOCAL_LLM_URL, api_key="not-needed")
+    return client
+
 def get_fake_embedding_model():
     return FakeEmbeddings(size=1536)
 
 def setup_embedding_model():
     if config.MODEL_PROVIDER == 'openai':
-        ic("OpenAI embedding model is being used")
         model_setup_function = get_openai_embedding_model
     elif config.MODEL_PROVIDER == 'fake':
-        ic("Fake embedding model is being used")
         model_setup_function = get_fake_embedding_model
+    elif config.MODEL_PROVIDER == 'lmstudio':
+        model_setup_function = get_openai_embedding_model
     else:
         raise ValueError(f"Unsupported embedding model provider: {config.EMBEDDING_MODEL_PROVIDER}")
     embedding_model = model_setup_function()

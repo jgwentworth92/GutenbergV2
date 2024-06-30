@@ -1,20 +1,25 @@
 import time
+import logging
+import subprocess
 
 import pytest
-from bytewax.dataflow import Dataflow
 import bytewax.operators as op
-from bytewax.testing import TestingSource, TestingSink, run_main
-import logging
-from typing import Dict, Any
-from confluent_kafka import Producer, Consumer, KafkaException
-from config.config_setting import get_config
-import subprocess
 import orjson
 
-config = get_config()
+from bytewax.dataflow import Dataflow
+from bytewax.testing import TestingSource, TestingSink, run_main
+
+from confluent_kafka import Producer, Consumer, KafkaException
+from config.config_setting import get_config
+
+from sqlalchemy import create_engine, text
+
+from logging_config import setup_logging, get_logger
+
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+setup_logging()
+logger = get_logger(__name__)
+config = get_config()
 
 # Kafka configuration for the test
 kafka_brokers = config.BROKERS
@@ -22,11 +27,16 @@ input_topic = config.INPUT_TOPIC
 output_topic = config.OUTPUT_TOPIC
 processed_topic = config.PROCESSED_TOPIC
 
-
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 def setup_bytewax_dataflows():
     logger.info("Starting Bytewax dataflows...")
     # Start the Bytewax dataflows
+    pdf_processing = subprocess.Popen(
+        ["python", "-m", "bytewax.run", "-w3", "dataflows.pdfProcessing"], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    gateway_service = subprocess.Popen(
+        ["python", "-m", "bytewax.run", "-w3", "dataflows.gateway_service"], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
     github_commit_processing = subprocess.Popen(
         ["python", "-m", "bytewax.run", "-w3", "dataflows.github_commit_processing"], stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
@@ -46,9 +56,13 @@ def setup_bytewax_dataflows():
     logger.info("Terminating Bytewax dataflows...")
     # Terminate the Bytewax dataflows
     github_commit_processing.terminate()
+    pdf_processing.terminate()
+    gateway_service.terminate()
     commit_summary_service.terminate()
     qdrant_service.terminate()
     github_commit_processing.wait()
+    pdf_processing.wait()
+    gateway_service.wait()
     commit_summary_service.wait()
     qdrant_service.wait()
     logger.info("Bytewax dataflows terminated.")
@@ -62,8 +76,10 @@ def produce_messages():
         }
         producer = Producer(producer_config)
 
-        logger.info(f"Producing {len(messages)} messages to topic '{topic}'...")
+        logger.info(f"Producing {len(messages)} with payload {str(messages)}messages to topic '{topic}'...")
+
         for message in messages:
+            logger.info(f"producing message with data {message}")
             producer.produce(topic, orjson.dumps(message).decode('utf-8'))
 
         producer.flush()
@@ -103,54 +119,58 @@ def consume_messages():
 
 @pytest.fixture
 def sample_repo_info_1():
-    return {"owner": "octocat", "repo_name": "Hello-World"}
-
+    return {
+	"id": "94f88c26-2b4e-48a5-902a-49bd857e5aa3",
+	"job_id": "1502f682-a81d-4dfc-9c8b-fd1e2ad829f2",
+	"resource_type": "github",
+	"resource_data": "{\"owner\": \"octocat\", \"repo_name\": \"Hello-World\"}",
+	"created_at": "2024-06-19T21:23:00.884795Z",
+	"updated_at": "2024-06-19T21:23:00.884795Z"
+}
 
 @pytest.fixture
+def kafka_message_factory():
+    def _kafka_message(data):
+        return {
+            "payload": {
+                "after": data
+            }
+        }
+    return _kafka_message
+@pytest.fixture
 def sample_repo_info_2():
-    return {"owner": "octocat", "repo_name": "Spoon-Knife"}
+    return {
+        "id": "94f88c26-2b4e-48a5-902a-49bd857e5aa3",
+        "job_id": "1502f682-a81d-4dfc-9c8b-fd1e2ad829f2",
+        "resource_type": "github",
+        "resource_data": "{\"owner\": \"octocat\", \"repo_name\": \"Spoon-Knife\"}",
+        "created_at": "2024-06-19T21:23:00.884795Z",
+        "updated_at": "2024-06-19T21:23:00.884795Z"
+    }
 
 
 @pytest.fixture
 def invalid_repo_info():
-    return {"owner": "invalid", "repo_name": "invalid-repo"}
+    return {
+        "id": "94f88c26-2b4e-48a5-902a-49bd857e5aa3",
+        "job_id": "1502f682-a81d-4dfc-9c8b-fd1e2ad829f2",
+        "resource_type": "github",
+        "resource_data": "{\"owner\": \"octocfat\", \"repo_name\": \"Spoon-Knife\"}",
+        "created_at": "2024-06-19T21:23:00.884795Z",
+        "updated_at": "2024-06-19T21:23:00.884795Z"
+    }
 
 
 # Fake Event Data Fixture
 @pytest.fixture
 def fake_event_data():
-    return {
-        "author": "The Octocat",
-        "message": "Create styles.css and updated README",
-        "date": "2014-02-04T22:38:36+00:00",
-        "url": "https://github.com/octocat/Spoon-Knife/commit/bb4cc8d3b2e14b3af5df699876dd4ff3acd00b7f",
-        "repo_name": "Goood_Event_Data",
-        "commit_id": "bb4cc8d3b2e14b3af5df699876dd4ff3acd00b7f",
-        "files": [
-            {
-                "filename": "README.md",
-                "status": "added",
-                "additions": 9,
-                "deletions": 0,
-                "changes": 9,
-                "patch": "@@ -0,0 +1,9 @@\n+### Well hello there!\n+\n+This repository is meant to provide an example for *forking* a repository on GitHub.\n+\n+Creating a *fork* is producing a personal copy of someone else's project. Forks act as a sort of bridge between the original repository and your personal copy. You can submit *Pull Requests* to help make other people's projects better by offering your changes up to the original project. Forking is at the core of social coding at GitHub.\n+\n+After forking this repository, you can make some changes to the project, and submit [a Pull Request](https://github.com/octocat/Spoon-Knife/pulls) as practice.\n+\n+For some more information on how to fork a repository, [check out our guide, \"Fork a Repo\"](https://help.github.com/articles/fork-a-repo). Thanks! :sparkling_heart:"
-            },
-            {
-                "filename": "styles.css",
-                "status": "added",
-                "additions": 17,
-                "deletions": 0,
-                "changes": 17,
-                "patch": "@@ -0,0 +1,17 @@\n+* {\n+  margin:0px;\n+  padding:0px;\n+}\n+\n+#octocat {\n+  display: block;\n+  width:384px;\n+  margin: 50px auto;\n+}\n+\n+p {\n+  display: block;\n+  width: 400px;\n+  margin: 50px auto;\n+  font: 30px Monaco,\"Courier New\",\"DejaVu Sans Mono\",\"Bitstream Vera Sans Mono\",monospace;\n+}"
-            }
-        ]
-    }
+    return ["{\"page_content\":\"Filename: README, Status: added, Files: @@ -0,0 +1 @@\\n+Hello World!\\n\\\\ No newline at end of file\",\"metadata\":{\"filename\":\"README\",\"status\":\"added\",\"additions\":1,\"deletions\":0,\"changes\":1,\"author\":\"cameronmcefee\",\"date\":\"2011-01-26T19:06:08+00:00\",\"repo_name\":\"Hello-World\",\"commit_url\":\"https://github.com/octocat/Hello-World/commit/553c2077f0edc3d5dc5d17262f6aa498e69d6f8e\",\"id\":\"553c2077f0edc3d5dc5d17262f6aa498e69d6f8e\",\"token_count\":18,\"collection_name\":\"Hello-World\",\"vector_id\":\"553c2077f0edc3d5dc5d17262f6aa498e69d6f8eREADME\"},\"type\":\"Document\"}"]
 
 
 # Generalized Fixture to Create Dataflows
 @pytest.fixture
 def create_dataflow():
-    def _create_dataflow(processing_function, input_data):
+    def _create_dataflow(processing_function, input_data, operator=op.flat_map):
         logger.debug(f"Creating dataflow")
 
         flow = Dataflow(f"Test_Dataflow")
@@ -159,7 +179,7 @@ def create_dataflow():
         op.inspect("check_inp", inp)
 
         # Ensure processing_function is applied with flat_map
-        processed = op.flat_map("process", inp, processing_function)
+        processed = operator("process", inp, processing_function)
 
         op.inspect("check_processed", processed)
 
@@ -269,3 +289,11 @@ def qdrant_event_data():
             "collection_name": f"The Octocat_Hello-World"
         }
     }
+
+@pytest.fixture
+def postgres_engine():
+    db_engine = create_engine(
+        f"postgresql://{config.POSTGRES_USER}:{config.POSTGRES_PASSWORD}@{config.POSTGRES_HOSTNAME}:{config.POSTGRES_PORT}/{config.POSTGRES_DB}"
+    )
+    yield db_engine
+    db_engine.dispose()
