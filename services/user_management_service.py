@@ -2,10 +2,9 @@ import requests
 
 from config.config_setting import config
 from dataflows.constants import Service, StepStatus, STEP_TYPE_MAPPING
-from utils.setup_logging import get_logger, setup_logging
+from logging_config import get_logger
 
 
-setup_logging()
 logger = get_logger(__name__)
 
 
