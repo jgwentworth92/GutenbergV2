@@ -1,4 +1,5 @@
 import hashlib
+import json
 import uuid
 from typing import Generator, Dict, Any, List
 
@@ -35,14 +36,17 @@ def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any],
         Generator[Dict[str, Any], None, None]: A generator yielding the result of the operation, including any errors.
     """
     try:
-        documents = [Document.model_validate_json(doc) for doc in message]
-        logging.debug(f"Processing documents to VectorDB: {documents}")
-    except Exception as e:
-        logging.error(f"Failed to parse documents: {e} with message {message}")
-        return
+        # First, parse each string in the message as JSON
+        parsed_docs = [json.loads(doc) for doc in message]
 
-    if not documents:
-        logging.error("No valid documents found in the message")
+        # Then, validate each parsed JSON object as a Document
+        documents = [Document.model_validate(doc) for doc in parsed_docs]
+        logging.debug(f"Processing documents to VectorDB: {documents}")
+    except json.JSONDecodeError as e:
+        logging.error(f"Failed to parse JSON in message: {e}")
+        return
+    except Exception as e:
+        logging.error(f"Failed to validate documents: {e} with message {message}")
         return
 
 
