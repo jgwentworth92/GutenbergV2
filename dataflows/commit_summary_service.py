@@ -9,7 +9,7 @@ import orjson
 from confluent_kafka import OFFSET_STORED
 from logging_config import setup_logging
 from services.message_processing_service import process_messages
-from utils.dataflow_processing_utils import parse_and_extract_job_id, extract_job_id
+from utils.dataflow_processing_utils import  extract_job_id
 
 setup_logging()
 # Application setup

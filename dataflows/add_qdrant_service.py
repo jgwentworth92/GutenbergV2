@@ -14,9 +14,6 @@ setup_logging()
 logger = get_logger(__name__)
 
 
-
-
-
 # Application setup
 brokers = config.BROKERS
 input_topic = config.PROCESSED_TOPIC

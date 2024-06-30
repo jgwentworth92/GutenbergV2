@@ -9,7 +9,7 @@ from logging_config import setup_logging
 from services.github_service import fetch_and_emit_commits
 import orjson
 
-from utils.dataflow_processing_utils import parse_and_extract_job_id, extract_job_id
+from utils.dataflow_processing_utils import  extract_job_id
 
 setup_logging()
 # Application setup
