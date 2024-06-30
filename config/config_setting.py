@@ -35,14 +35,6 @@ class Settings(BaseSettings):
 
     model_config = ConfigDict(env_file=".env", env_file_encoding='utf-8', extra=None)
 
-    POSTGRES_USER: str = "admin"
-    POSTGRES_PASSWORD: str = "admin"
-    POSTGRES_HOSTNAME: str = "postgres"
-    POSTGRES_PORT: int = 5432
-    POSTGRES_DB: str = "db"
-
-    model_config = ConfigDict(env_file=".env", env_file_encoding="utf-8", extra=None)
-
     @classmethod
     def parse_env_var(cls, value: str) -> Dict[str, str]:
         return json.loads(value)
@@ -59,6 +51,13 @@ class DevelopmentConfig(Settings):
 class TestingConfig(Settings):
     TESTING: bool = True
     DEBUG: bool = True
+
+    POSTGRES_USER: str = "admin"
+    POSTGRES_PASSWORD: str = "admin"
+    POSTGRES_HOSTNAME: str = "postgres"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_DB: str = "db"
+
     model_config = ConfigDict(env_file=".env.test", env_file_encoding="utf-8", extra=None)
 
 

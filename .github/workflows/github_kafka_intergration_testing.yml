@@ -12,25 +12,6 @@ jobs:
         ports:
           - "6333:6333"
           - "6334:6334"
-      postgres:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: admin
-          POSTGRES_PASSWORD: admin
-          POSTGRES_DB: db
-        ports:
-          - "5432:5432"
-
-      gutenberg-api:
-        image: jgcapworh92/gutenberg-ingestion-api:latest
-        ports:
-          - "8000:8000"
-        env:
-          postgres_user: admin
-          postgres_password: admin
-          postgres_port: 5432
-          postgres_db: db
-          postgres_server: 0.0.0.0
 
     steps:
       - name: Checkout code
