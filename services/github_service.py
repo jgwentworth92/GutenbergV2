@@ -5,8 +5,10 @@ from github import Github, Auth
 from orjson import orjson
 from config.config_setting import config
 from logging_config import get_logger
+from models import constants
 from models.commit import CommitData, FileInfo
 from models.document import Document
+from services.user_management_service import user_management_service
 
 logger = get_logger(__name__)
 
@@ -130,6 +132,11 @@ def fetch_and_emit_commits(resource_data: Dict[str, Any]) -> Generator[str, None
     repo = fetch_repository(owner, repo_name)
 
     if not repo:
+        user_management_service.update_status(
+            constants.Service.GITHUB_SERVICE,
+            job_id,
+            constants.StepStatus.FAILED.value,
+        )
         logger.error(f"Failed to fetch repository {owner}/{repo_name}")
         return
 
@@ -144,8 +151,20 @@ def fetch_and_emit_commits(resource_data: Dict[str, Any]) -> Generator[str, None
         for document in documents:
             yield document.model_dump_json()
         logger.info(f"Processed combined commit data into {len(documents)} documents for repo {repo_name}")
+        user_management_service.update_status(
+            constants.Service.GITHUB_SERVICE,
+            job_id,
+            constants.StepStatus.COMPLETE.value,
+        )
+        logger.info(f"Updated the status to completed in github service")
+        
 
     except Exception as e:
+        user_management_service.update_status(
+            constants.Service.GITHUB_SERVICE,
+            job_id,
+            constants.StepStatus.FAILED.value,
+        )
         logger.error({
             "error": "Failed to fetch commits",
             "details": str(e),

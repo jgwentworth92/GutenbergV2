@@ -97,6 +97,7 @@ my_project/
 3. **Install the dependencies:**
    ```sh
    pip install -r requirements.txt
+   pre-commit install
    ```
 
 4. **Create the recovery partitions**:
