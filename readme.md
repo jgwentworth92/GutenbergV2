@@ -132,34 +132,7 @@ gutenberg/
    pip install -r requirements.txt
    ```
 
-4. **Create the recovery partitions**:
-
-    Create the necessary directories for the recovery partitions:
-
-   ```sh
-   mkdir recovery
-   cd recovery
-   mkdir github_listener
-   mkdir commit_summary_service
-   mkdir add_qdrant_service
-   mkdir gateway_service
-   mkdir pdf_service
-   cd ..
-   ```
-
-    Set up recovery partitions for each microservice:
-
-   ```sh
-   python -m bytewax.recovery recovery/github_listener 4
-   python -m bytewax.recovery recovery/commit_summary_service 4
-   python -m bytewax.recovery recovery/add_qdrant_service 4
-   python -m bytewax.recovery recovery/gateway_service 4
-   python -m bytewax.recovery recovery/pdf_service 4
-   ```
-
-    This ensures that Bytewax can recover from failures and continue processing. 
-
-5. **Set up your environment variables:**
+4. **Set up your environment variables:**
    Create a `.env` file in the root directory and add the required environment variables:
     ```env
    GITHUB_TOKEN=[your_github_token]
@@ -188,7 +161,7 @@ gutenberg/
    MAILTRAP_PASSWORD=[your_mailtrap_password]
    ```
 
-6. **Add Streamlit frontend to docker-compose.yml:**
+5. **Add Streamlit frontend to docker-compose.yml:**
    Add the following service to your `docker-compose.yml` file:
    ```yaml
    streamlit:
@@ -202,6 +175,8 @@ gutenberg/
        - fastapi
      restart: always
    ```
+
+Note: The system will automatically create recovery partitions if they are not manually created when the project is started.
 
 ### Using OpenAI
 1. **Set up OpenAI API key:**
@@ -235,7 +210,7 @@ To start all services, navigate to the root directory of your project where the 
 docker-compose up --build
 ```
 
-This will build and start all the services required.
+This will build and start all the services required, including running the Alembic migration scripts automatically.
 
 ### Accessing the Services
 
@@ -246,6 +221,7 @@ This will build and start all the services required.
    - Users can submit jobs to start event-driven microservices.
    - The FastAPI app adds entries to the PostgreSQL database.
    - Debezium watches the resource table and produces changes to a Kafka topic.
+   - For more detailed information about the Gutenberg Ingestion API, please visit: [https://github.com/jgwentworth92/Gutenberg-Ingestion-API](https://github.com/jgwentworth92/Gutenberg-Ingestion-API)
 
 3. **Streamlit Frontend:** Access at [http://localhost:8501](http://localhost:8501)
    - Use this frontend to submit and view documents in the system.
