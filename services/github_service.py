@@ -59,7 +59,7 @@ def create_document(file: FileInfo, event_data: CommitData, job_id: str) -> Docu
         "token_count": len(page_content.split()),
         "collection_name": f"{event_data.repo_name}",
         "vector_id": event_data.commit_id + file.filename,
-        "doc_type": "raw"
+        "doc_type": "RAW"
     }
     return Document(page_content=page_content, metadata=metadata)
 
