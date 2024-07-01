@@ -76,7 +76,6 @@ services:
       -  ./logs:/bytewax/logs
     command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/gateway_service", "-s", "3", "-b", "0", "-w4", "dataflows/gateway_service"]
 
-
   github_listener:
     build: .
     container_name: github_retriever
@@ -207,7 +206,6 @@ services:
       retries: 5
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
   pgadmin:
     image: dpage/pgadmin4
     environment:
