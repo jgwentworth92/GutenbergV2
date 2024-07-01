@@ -1,8 +1,15 @@
 import orjson
 from config.config_setting import config
 from bytewax import operators as op
-from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage, KafkaSourceMessage
+from bytewax.connectors.kafka import (
+    KafkaSource,
+    KafkaSink,
+    KafkaSinkMessage,
+    KafkaSourceMessage,
+)
 from bytewax.dataflow import Dataflow
+from models import constants
+from services.user_management_service import user_management_service
 from logging_config import get_logger, setup_logging
 
 setup_logging()
@@ -27,7 +34,10 @@ def process_message(msg: KafkaSourceMessage):
     data = orjson.loads(msg.value)
     row = data["payload"]["after"]
     resource_type = row["resource_type"]
-    logger.info(f"data type submitted to gateway dataflow {resource_type} with payload: {row}")
+    job_id = row["job_id"]
+    logger.info(
+        f"data type submitted to gateway dataflow {resource_type} with payload: {row}"
+    )
 
     if resource_type in RESOURCE_TOPIC_MAPPING:
         user_management_service.update_status(
@@ -35,20 +45,41 @@ def process_message(msg: KafkaSourceMessage):
             job_id,
             constants.StepStatus.COMPLETE.value,
         )
-        logger.info("Updated the status to completed")
+        logger.error(f"Updated the status")
         return KafkaSinkMessage(
             None, orjson.dumps(row), topic=RESOURCE_TOPIC_MAPPING[resource_type]
         )
-    logger.error(f"Unrecognised resource! {resource_type}")
-    user_management_service.update_status(
-        constants.Service.GATEWAY_SERVICE, job_id, constants.StepStatus.FAILED.value
-    )
-    return None
+    else:
+        logger.error(f"Unrecognised resource! {resource_type}")
+        user_management_service.update_status(
+            constants.Service.GATEWAY_SERVICE, job_id, constants.StepStatus.COMPLETE
+        )
+        return None
 
+
+def update_status_in_progress(msg: KafkaSourceMessage):
+    data = orjson.loads(msg.value)
+    row = data["payload"]["after"]
+
+    job_id = row["job_id"]
+    logger.info(f"Updating status for job id {job_id}")
+    user_management_service.update_status(
+        constants.Service.GATEWAY_SERVICE,
+        job_id,
+        constants.StepStatus.IN_PROGRESS.value,
+    )
+    return msg
+
+
+messages = op.map(
+    "update_status_in_progress",
+    kafka_input,
+    update_status_in_progress,
+)
 
 processed_messages = op.map(
     "process_message",
-    kafka_input,
+    messages,
     process_message,
 )
 

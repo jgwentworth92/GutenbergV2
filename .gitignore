@@ -166,3 +166,5 @@ debezium-setup/secrets/*
 .DS_store
 recovery
 notes.txt
+
+docker-compose.override.yml
