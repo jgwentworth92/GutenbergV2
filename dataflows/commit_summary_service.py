@@ -2,16 +2,18 @@ import json
 from datetime import timedelta
 from bytewax.dataflow import Dataflow
 import bytewax.operators as op
-from bytewax.connectors.kafka import operators as kop, KafkaSource, KafkaSink, KafkaSinkMessage
+from bytewax.connectors.kafka import operators as kop ,KafkaSource, KafkaSink, KafkaSinkMessage, KafkaSourceMessage
 from icecream import ic
 from config.config_setting import config
 import orjson
 from confluent_kafka import OFFSET_STORED
-from logging_config import setup_logging
+from logging_config import setup_logging, get_logger
 from services.message_processing_service import process_messages
 from utils.dataflow_processing_utils import  extract_job_id
+from services.user_management_service import user_management_service
 
 setup_logging()
+logger = get_logger(__name__)
 # Application setup
 brokers = [config.BROKERS]
 input_topic = config.OUTPUT_TOPIC

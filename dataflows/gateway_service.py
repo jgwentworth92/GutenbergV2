@@ -30,9 +30,19 @@ def process_message(msg: KafkaSourceMessage):
     logger.info(f"data type submitted to gateway dataflow {resource_type} with payload: {row}")
 
     if resource_type in RESOURCE_TOPIC_MAPPING:
+        user_management_service.update_status(
+            constants.Service.GATEWAY_SERVICE,
+            job_id,
+            constants.StepStatus.COMPLETE.value,
+        )
+        logger.info("Updated the status to completed")
         return KafkaSinkMessage(
             None, orjson.dumps(row), topic=RESOURCE_TOPIC_MAPPING[resource_type]
         )
+    logger.error(f"Unrecognised resource! {resource_type}")
+    user_management_service.update_status(
+        constants.Service.GATEWAY_SERVICE, job_id, constants.StepStatus.FAILED.value
+    )
     return None
 
 
