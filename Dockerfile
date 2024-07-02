@@ -1,4 +1,5 @@
 FROM python:3.12.3-slim as base
+
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONFAULTHANDLER=1 \
@@ -6,23 +7,31 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=on
 
-# Set up a workdir where we can put our dataflow
+# Set up a workdir
 WORKDIR /bytewax
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc libpq-dev build-essential \
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    build-essential \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-
 # Copy requirements file and install dependencies
-COPY ./requirements.txt /bytewax/requirements.txt
-RUN pip install --upgrade pip \
-    && pip install -r requirements.txt
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Copy the rest of the application code
+# Copy the application code
 COPY . .
 
-# Initialize Bytewax recovery partitions
+# Create an entrypoint script
+RUN echo '#!/bin/bash\n\
+python main.py\n\
+exec "$@"' > /entrypoint.sh && chmod +x /entrypoint.sh
 
-# Set PYTHONUNBUFFERED to any value to make Python flush stdout
-CMD ["python", "main.py"]
+# Set the entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Default command (will be overridden in docker-compose)
+CMD ["echo", "Specify a dataflow to run"]

@@ -1,3 +1,4 @@
+import json
 import time
 import logging
 import subprocess
@@ -8,8 +9,11 @@ import orjson
 
 from bytewax.dataflow import Dataflow
 from bytewax.testing import TestingSource, TestingSink, run_main
-
+import pytest
+from unittest.mock import patch, MagicMock
 from confluent_kafka import Producer, Consumer, KafkaException
+from github import Github, Auth
+
 from config.config_setting import get_config
 
 from sqlalchemy import create_engine, text
@@ -27,6 +31,36 @@ input_topic = config.INPUT_TOPIC
 output_topic = config.OUTPUT_TOPIC
 processed_topic = config.PROCESSED_TOPIC
 
+github_token = config.GITHUB_TOKEN
+from models.document import Document
+
+
+
+@pytest.fixture
+def sample_messages(sample_documents):
+    return [doc.model_dump_json() for doc in sample_documents]
+@pytest.fixture
+def github_client():
+    return Github(auth=Auth.Token(github_token))
+
+@pytest.fixture
+def mock_httpx_client():
+    with patch('httpx.Client') as mock_client:
+        yield mock_client
+
+@pytest.fixture
+def sample_auth_header():
+    return {"Authorization": "Bearer test_token"}
+
+@pytest.fixture
+def sample_url():
+    return "https://api.example.com/endpoint"
+
+@pytest.fixture
+def sample_prepare_payload():
+    def prepare(item):
+        return [{"key": "value"}]
+    return prepare
 @pytest.fixture(scope="module")
 def setup_bytewax_dataflows():
     logger.info("Starting Bytewax dataflows...")
@@ -116,7 +150,16 @@ def consume_messages():
 
     return _consume_messages
 
-
+@pytest.fixture
+def sample_pdf_input():
+    return {
+        "id": "3dc6752c-b27a-4243-8fe2-810bf482313b",
+        "job_id": "02ccd381-76e7-47ee-9346-b69df29cc640",
+        "resource_type": "pdf",
+        "resource_data": "{\"pdf_url\": \"https://unec.edu.az/application/uploads/2014/12/pdf-sample.pdf\", \"collection_name\": \"pdftest\"}",
+        "created_at": "2024-06-19T23:33:49.763648Z",
+        "updated_at": "2024-06-19T23:33:49.763648Z"
+    }
 @pytest.fixture
 def sample_repo_info_1():
     return {
@@ -164,9 +207,11 @@ def invalid_repo_info():
 # Fake Event Data Fixture
 @pytest.fixture
 def fake_event_data():
-    return ["{\"page_content\":\"Filename: README, Status: added, Files: @@ -0,0 +1 @@\\n+Hello World!\\n\\\\ No newline at end of file\",\"metadata\":{\"filename\":\"README\",\"status\":\"added\",\"additions\":1,\"deletions\":0,\"changes\":1,\"author\":\"cameronmcefee\",\"date\":\"2011-01-26T19:06:08+00:00\",\"repo_name\":\"Hello-World\",\"commit_url\":\"https://github.com/octocat/Hello-World/commit/553c2077f0edc3d5dc5d17262f6aa498e69d6f8e\",\"id\":\"553c2077f0edc3d5dc5d17262f6aa498e69d6f8e\",\"token_count\":18,\"collection_name\":\"Hello-World\",\"vector_id\":\"553c2077f0edc3d5dc5d17262f6aa498e69d6f8eREADME\"},\"type\":\"Document\"}"]
+    return ["{\"page_content\":\"Filename: README, Status: added, Files: @@ -0,0 +1 @@\\n+Hello World!\\n\\\\ No newline at end of file\",\"metadata\":{\"filename\":\"README\",\"job_id\":\"1502f682-a81d-4dfc-9c8b-fd1e2ad829f2\",\"status\":\"added\",\"additions\":1,\"deletions\":0,\"changes\":1,\"author\":\"cameronmcefee\",\"date\":\"2011-01-26T19:06:08+00:00\",\"repo_name\":\"Hello-World\",\"commit_url\":\"https://github.com/octocat/Hello-World/commit/553c2077f0edc3d5dc5d17262f6aa498e69d6f8e\",\"id\":\"553c2077f0edc3d5dc5d17262f6aa498e69d6f8e\",\"token_count\":18,\"collection_name\":\"Hello-World\",\"vector_id\":\"553c2077f0edc3d5dc5d17262f6aa498e69d6f8eREADME\"},\"type\":\"Document\"}"]
 
-
+@pytest.fixture
+def sample_documents(fake_event_data):
+    return [Document.model_validate_json(doc_json) for doc_json in fake_event_data]
 # Generalized Fixture to Create Dataflows
 @pytest.fixture
 def create_dataflow():
@@ -269,26 +314,53 @@ def document_processing_error_event_data():
         ]
     }
 
-
 @pytest.fixture
 def qdrant_event_data():
-    return {
-        "page_content": "Filename: README, Status: modified, Files: @@ -1 +1 @@\n-Hello World!\n\\ No newline at end of file\n+Hello World!",
+    return [json.dumps({
+        "page_content": "Filename: README, Status: added, Files: @@ -0,0 +1 @@\n+Hello World!\n\\ No newline at end of file",
         "metadata": {
             "filename": "README",
-            "status": "modified",
+            "job_id": "1502f682-a81d-4dfc-9c8b-fd1e2ad829f2",
+            "status": "added",
             "additions": 1,
-            "deletions": 1,
-            "changes": 2,
-            "author": "The Octocat",
-            "date": "2012-03-06T23:06:50+00:00",
+            "deletions": 0,
+            "changes": 1,
+            "author": "cameronmcefee",
+            "date": "2011-01-26T19:06:08+00:00",
             "repo_name": "Hello-World",
-            "commit_url": "https://github.com/octocat/Hello-World/commit/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d",
-            "id": "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d",
-            "token_count": 20,
-            "collection_name": f"The Octocat_Hello-World"
-        }
-    }
+            "commit_url": "https://github.com/octocat/Hello-World/commit/553c2077f0edc3d5dc5d17262f6aa498e69d6f8e",
+            "id": "553c2077f0edc3d5dc5d17262f6aa498e69d6f8e",
+            "token_count": 18,
+            "collection_name": "Hello-World",
+            "vector_id": "553c2077f0edc3d5dc5d17262f6aa498e69d6f8eREADME"
+        },
+        "type": "Document"
+    })]
+
+
+@pytest.fixture
+def mock_qdrant_client():
+    with patch('services.vectordb_service.QdrantClient') as mock:
+        mock_client = MagicMock()
+        mock_client.collection_exists.return_value = False
+        mock.return_value = mock_client
+        yield mock_client
+
+
+@pytest.fixture
+def mock_qdrant():
+    with patch('services.vectordb_service.Qdrant') as mock:
+        mock_qdrant = MagicMock()
+        mock_qdrant.add_texts.return_value = ["8996e7f9-4ea3-1fd2-3d59-55d74de62da4"]
+        mock.return_value = mock_qdrant
+        yield mock_qdrant
+
+
+@pytest.fixture
+def mock_embedding():
+    with patch('services.vectordb_service.setup_embedding_model') as mock:
+        mock.return_value = MagicMock()
+        yield mock.return_value
 
 @pytest.fixture
 def postgres_engine():

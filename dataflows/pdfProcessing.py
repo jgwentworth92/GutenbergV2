@@ -1,15 +1,12 @@
 from datetime import timedelta
-from bytewax.dataflow import Dataflow
 import bytewax.operators as op
+import orjson
 from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage
-from confluent_kafka import OFFSET_END
-from icecream import ic
+from bytewax.dataflow import Dataflow
 from config.config_setting import config
 from logging_config import setup_logging
-from services.github_service import fetch_and_emit_commits
 from services.pdf_processing_service import process_pdf
-from utils.kafka_utils import inspect_output_topic
-import orjson
+
 setup_logging()
 # Application setup
 brokers = [config.BROKERS]

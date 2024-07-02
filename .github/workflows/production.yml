@@ -56,7 +56,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: 🧪 Run Intergration Tests
-        run: pytest tests/test_kafka_github.py
+        run: pytest tests/intergration_tests
 
   build-and-push-docker:
     needs: test

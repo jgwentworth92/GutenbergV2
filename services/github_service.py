@@ -58,7 +58,8 @@ def create_document(file: FileInfo, event_data: CommitData, job_id: str) -> Docu
         "job_id": job_id,  # Include the job ID here
         "token_count": len(page_content.split()),
         "collection_name": f"{event_data.repo_name}",
-        "vector_id": event_data.commit_id + file.filename
+        "vector_id": event_data.commit_id + file.filename,
+        "doc_type": "RAW"
     }
     return Document(page_content=page_content, metadata=metadata)
 
@@ -90,7 +91,7 @@ def fetch_commit_data(args: Tuple[Any, str]) -> CommitData:
 
 
 def fetch_all_commit_data(commits, repo_name):
-    commit_args = zip(commits, [repo_name] * commits.totalCount)
+    commit_args = [(commit, repo_name) for commit in commits]
     with Pool(processes=cpu_count()) as pool:
         return list(pool.imap_unordered(fetch_commit_data, commit_args))
 

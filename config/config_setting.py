@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     DESCRIPTION: str = "Service consuming Kafka topics and adding to vector db."
     VECTOR_DB_HOST: str = "qdrant"
     VECTOR_DB_PORT: int = 6333
+    DOCUMENT_BATCH_ENDPOINT:str ="http://fastapi:8000/api/documents/batch/"
     GITHUB_TOKEN: Optional[str]
     BROKERS: Optional[str] = None
     INPUT_TOPIC: Optional[str] = None
