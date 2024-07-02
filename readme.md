@@ -107,10 +107,11 @@ gutenberg/
 
 ## Installation
 
-1. **Clone the repository:**
+1. **Clone the repository and switch to this branch (feat-custom-fastapi-sink):**
    ```sh
    git clone https://github.com/jgwentworth92/GutenbergV2.git
    cd GutenbergV2
+   git checkout -b feat-custom-fastapi-sink origin/feat-custom-fastapi-sink
    ```
 
 2. **Create and activate a virtual environment according to your operating system:**
@@ -299,5 +300,5 @@ pytest .
 ```
 
 The tests are located in the `tests/` directory and cover the GitHub service, message processing service, and dataflows.
-```
+
 
