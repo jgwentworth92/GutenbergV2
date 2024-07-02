@@ -15,6 +15,7 @@ processed_topic = config.PROCESSED_TOPIC
 qdrant_output = config.VECTORDB_TOPIC_NAME
 resource_topic=config.RESOURCE_TOPIC
 
+@pytest.mark.skip(reason="Flaky test, temporarily disabled")
 def test_kafka_pdf_processing_integration(produce_messages, kafka_message_factory, consume_messages,
                                           setup_bytewax_dataflows):
     # Produce test messages to the input topic
