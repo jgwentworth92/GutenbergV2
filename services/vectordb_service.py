@@ -25,6 +25,7 @@ def generate_uuid_from_string(val: str) -> uuid.UUID:
     logging.info(f"id produced {hex_string}")
     return uuid.UUID(hex=hex_string)
 
+
 def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any], None, None]:
     """
     Processes a message containing documents and stores them in a vector database.
@@ -49,10 +50,9 @@ def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any],
         logging.error(f"Failed to validate documents: {e} with message {message}")
         return
 
-
     try:
         collection_name = documents[0].metadata['collection_name']
-        job_id=documents[0].metadata['job_id']
+        job_id = documents[0].metadata['job_id']
         logging.info(f"Received request for {documents[0].metadata['collection_name']}")
         embed = setup_embedding_model()
         vectordb = get_qdrant_vector_store(host=config.VECTOR_DB_HOST, port=config.VECTOR_DB_PORT,
@@ -65,8 +65,13 @@ def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any],
         added_ids = vectordb.add_texts(texts=texts, metadatas=metadatas, ids=ids)
 
         logging.info(f"Processed {len(added_ids)} documents into vectordb collection")
-        for id in added_ids:
-            result_message = {"collection_name": collection_name, "vector_db_id": id, "job_id": job_id}
+        for id, metadata in zip(added_ids, metadatas):
+            result_message = {
+                "collection_name": collection_name,
+                "vector_db_id": id,
+                "job_id": job_id,
+                "document_type": metadata.get('doc_type', 'UNKNOWN')
+            }
             yield result_message
     except Exception as e:
         logging.error(f"Failed to add documents to Qdrant: {e}")

@@ -54,7 +54,7 @@ def process_messages(messages: List[str]) -> Generator[Dict[str, Any], None, Non
             document = documents[i]
             metadata = document.metadata
             metadata["vector_id"] = f"{metadata['vector_id']}_llm"
-            metadata["doc_type"] = "llm_summary"
+            metadata["doc_type"] = "SUMMARY"
             updated_doc = Document(
                 page_content="Summary: " + summary,
                 metadata=metadata
