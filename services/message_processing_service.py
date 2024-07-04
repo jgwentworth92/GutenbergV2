@@ -1,9 +1,14 @@
+import orjson
 from typing import Dict, Any, Generator, List
 from logging_config import get_logger
 from utils.langchain_callback_logger import MyCustomHandler
 from utils.model_utils import setup_chat_model
 from models.document import Document
 import time
+
+from models import constants
+from utils.dataflow_processing_utils import  extract_job_id
+from services.user_management_service import user_management_service
 
 
 logger = get_logger(__name__)
@@ -38,6 +43,13 @@ def process_messages(messages: List[str]) -> Generator[Dict[str, Any], None, Non
     try:
         handler = MyCustomHandler(logger)
         documents = [Document.model_validate_json(doc_json) for doc_json in messages]
+        job_ids = set(extract_job_id(doc) for doc in messages)
+        for job_id in job_ids:
+            user_management_service.update_status(
+                constants.Service.COMMIT_SUMMARY,
+                job_id,
+                constants.StepStatus.IN_PROGRESS.value,
+            )
 
         if not documents:
             logger.warning("No valid documents to process.")
@@ -61,10 +73,23 @@ def process_messages(messages: List[str]) -> Generator[Dict[str, Any], None, Non
             )
             yield updated_doc.model_dump_json()
 
-    except ValueError as e:
+    except (ValueError, orjson.JSONDecodeError) as e:
         logger.error({"error": "Invalid document format", "details": str(e), "data": messages})
     except Exception as e:
+        for job_id in job_ids:
+            user_management_service.update_status(
+                constants.Service.COMMIT_SUMMARY,
+                job_id,
+                constants.StepStatus.FAILED.value,
+            )
         logger.error({"error": "Failed to process messages", "details": str(e), "data": messages})
+    else:
+        for job_id in job_ids:
+            user_management_service.update_status(
+                constants.Service.COMMIT_SUMMARY,
+                job_id,
+                constants.StepStatus.COMPLETE.value,
+            )
     finally:
         end_time = time.time()
         total_time = end_time - start_time

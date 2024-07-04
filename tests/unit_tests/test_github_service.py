@@ -2,7 +2,9 @@
 import pytest
 from github import Github, Auth
 import orjson
+from unittest import mock
 
+from models import constants
 from services.github_service import (
     fetch_repository,
     create_document,
@@ -17,9 +19,15 @@ from models.document import Document
 from config.config_setting import config
 
 # Test for the github_listener_dataflow
-def test_github_commits_hello_world(create_dataflow, run_dataflow, sample_repo_info_1):
+@mock.patch('services.user_management_service.user_management_service.update_status')
+def test_github_commits_hello_world(mock_update_status, create_dataflow, run_dataflow, sample_repo_info_1):
     flow, captured_output = create_dataflow(fetch_and_emit_commits, sample_repo_info_1)
     run_dataflow(flow)
+    mock_update_status.assert_any_call(
+        constants.Service.GITHUB_SERVICE,
+        sample_repo_info_1['job_id'],
+        constants.StepStatus.COMPLETE.value,
+    )
 
     for data in captured_output:
         if "commit_id" in data[0]:
@@ -39,9 +47,15 @@ def test_github_commits_hello_world(create_dataflow, run_dataflow, sample_repo_i
             assert "token_count" in rtn["metadata"]
 
 
-def test_github_commits_invalid_repo(create_dataflow, run_dataflow, invalid_repo_info):
+@mock.patch('services.user_management_service.user_management_service.update_status')
+def test_github_commits_invalid_repo(mock_update_status, create_dataflow, run_dataflow, invalid_repo_info):
     flow, captured_output = create_dataflow(fetch_and_emit_commits, invalid_repo_info)
     run_dataflow(flow)
+    mock_update_status.assert_called_with(
+        constants.Service.GITHUB_SERVICE,
+        '1502f682-a81d-4dfc-9c8b-fd1e2ad829f2',
+        constants.StepStatus.FAILED.value,
+    )
     for data in captured_output:
         assert "error" in data
         assert "details" in data
@@ -147,12 +161,18 @@ def test_create_documents():
     assert isinstance(documents[0], Document)
     assert documents[0].metadata["job_id"] == job_id
 
-def test_fetch_and_emit_commits():
+@mock.patch('services.user_management_service.user_management_service.update_status')
+def test_fetch_and_emit_commits(mock_update_status):
     resource_data = {
         "resource_data": orjson.dumps({"owner": "octocat", "repo_name": "Hello-World"}),
         "job_id": "test_job_456"
     }
     documents = list(fetch_and_emit_commits(resource_data))
+    mock_update_status.assert_called_with(
+        constants.Service.GITHUB_SERVICE,
+        'test_job_456',
+        constants.StepStatus.COMPLETE.value,
+    )
     assert len(documents) > 0
     for doc in documents:
         assert isinstance(doc, str)

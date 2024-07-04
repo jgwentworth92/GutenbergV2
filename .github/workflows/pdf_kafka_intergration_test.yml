@@ -49,4 +49,4 @@ jobs:
           pip install -r requirements.txt
 
       - name: 🧪 Run PDF Processing Intergration Test
-        run: pytest tests/test_kafka_pdf.py
+        run: pytest tests/intergration_tests/test_kafka_pdf.py

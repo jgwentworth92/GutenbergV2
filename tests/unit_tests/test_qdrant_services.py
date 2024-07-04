@@ -1,5 +1,6 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
+from models import constants
 from services.vectordb_service import process_message_to_vectordb, generate_uuid_from_string
 from models.document import Document
 import json
@@ -7,22 +8,41 @@ import json
 
 
 
-def test_process_message_to_vectordb_empty_input():
+@patch('services.user_management_service.user_management_service.update_status')
+def test_process_message_to_vectordb_empty_input(mock_update_status: MagicMock):
     results = list(process_message_to_vectordb([]))
     assert len(results) == 0
+    mock_update_status.assert_not_called()
 
 
-def test_process_message_to_vectordb_invalid_input():
+@patch('services.user_management_service.user_management_service.update_status')
+def test_process_message_to_vectordb_invalid_input(mock_update_status: MagicMock):
     invalid_input = ["invalid json"]
     results = list(process_message_to_vectordb(invalid_input))
     assert len(results) == 0
+    mock_update_status.assert_not_called()
 
 
+@patch('services.user_management_service.user_management_service.update_status')
 @patch('services.vectordb_service.get_qdrant_vector_store')
-def test_process_message_to_vectordb_exception(mock_get_qdrant, qdrant_event_data, mock_embedding):
+def test_process_message_to_vectordb_exception(mock_get_qdrant, mock_update_status: MagicMock, qdrant_event_data, mock_embedding):
     mock_get_qdrant.side_effect = Exception("Test exception")
     results = list(process_message_to_vectordb(qdrant_event_data))
     assert len(results) == 0
+    mock_update_status.assert_has_calls(
+        [
+            call(
+                constants.Service.QDRANT_SERVICE,
+                '1502f682-a81d-4dfc-9c8b-fd1e2ad829f2',
+                constants.StepStatus.IN_PROGRESS.value,
+            ),
+            call(
+                constants.Service.QDRANT_SERVICE,
+                '1502f682-a81d-4dfc-9c8b-fd1e2ad829f2',
+                constants.StepStatus.FAILED.value,
+            )
+        ]
+    )
 
 
 def test_generate_uuid_from_string():
@@ -32,7 +52,8 @@ def test_generate_uuid_from_string():
 
 
 @patch('services.vectordb_service.get_qdrant_vector_store')
-def test_process_message_to_vectordb_success(mock_get_qdrant, qdrant_event_data, mock_embedding):
+@patch('services.user_management_service.user_management_service.update_status')
+def test_process_message_to_vectordb_success(mock_update_status: MagicMock, mock_get_qdrant, qdrant_event_data, mock_embedding):
     mock_qdrant = MagicMock()
     mock_qdrant.add_texts.return_value = ["8996e7f9-4ea3-1fd2-3d59-55d74de62da4"]
     mock_get_qdrant.return_value = mock_qdrant
@@ -46,10 +67,25 @@ def test_process_message_to_vectordb_success(mock_get_qdrant, qdrant_event_data,
     assert results[0]["collection_name"] == "Hello-World"
     assert results[0]["vector_db_id"] == "8996e7f9-4ea3-1fd2-3d59-55d74de62da4"  # Changed this line
     assert results[0]["job_id"] == "1502f682-a81d-4dfc-9c8b-fd1e2ad829f2"
+    mock_update_status.assert_has_calls(
+        [
+            call(
+                constants.Service.QDRANT_SERVICE,
+                '1502f682-a81d-4dfc-9c8b-fd1e2ad829f2',
+                constants.StepStatus.IN_PROGRESS.value,
+            ),
+            call(
+                constants.Service.QDRANT_SERVICE,
+                '1502f682-a81d-4dfc-9c8b-fd1e2ad829f2',
+                constants.StepStatus.COMPLETE.value,
+            )
+        ]
+    )
 
 
 @patch('services.vectordb_service.get_qdrant_vector_store')
-def test_process_message_to_vectordb_multiple_documents(mock_get_qdrant, mock_embedding):
+@patch('services.user_management_service.user_management_service.update_status')
+def test_process_message_to_vectordb_multiple_documents(mock_update_status: MagicMock, mock_get_qdrant, mock_embedding):
     multiple_docs = [
         json.dumps(Document(page_content="Doc 1",
                             metadata={"collection_name": "Test", "job_id": "job1", "vector_id": "id1"}).dict()),
@@ -69,11 +105,26 @@ def test_process_message_to_vectordb_multiple_documents(mock_get_qdrant, mock_em
     assert all(result["collection_name"] == "Test" for result in results)
     assert results[0]["vector_db_id"] == "uuid1"  # Changed this line
     assert results[1]["vector_db_id"] == "uuid2"  # Changed this line
+    mock_update_status.assert_has_calls(
+        [
+            call(
+                constants.Service.QDRANT_SERVICE,
+                'job1',
+                constants.StepStatus.IN_PROGRESS.value,
+            ),
+            call(
+                constants.Service.QDRANT_SERVICE,
+                'job1',
+                constants.StepStatus.COMPLETE.value,
+            )
+        ]
+    )
 
 
 @patch('services.vectordb_service.get_qdrant_vector_store')
 @patch('services.vectordb_service.config')
-def test_process_message_to_vectordb_existing_collection(mock_config, mock_get_qdrant, qdrant_event_data, mock_embedding):
+@patch('services.user_management_service.user_management_service.update_status')
+def test_process_message_to_vectordb_existing_collection(mock_update_status: MagicMock, mock_config, mock_get_qdrant, qdrant_event_data, mock_embedding):
     mock_qdrant = MagicMock()
     mock_qdrant.add_texts.return_value = ["8996e7f9-4ea3-1fd2-3d59-55d74de62da4"]
     mock_get_qdrant.return_value = mock_qdrant
@@ -84,3 +135,17 @@ def test_process_message_to_vectordb_existing_collection(mock_config, mock_get_q
 
     assert len(results) == 1
     mock_get_qdrant.assert_called_once()
+    mock_update_status.assert_has_calls(
+        [
+            call(
+                constants.Service.QDRANT_SERVICE,
+                '1502f682-a81d-4dfc-9c8b-fd1e2ad829f2',
+                constants.StepStatus.IN_PROGRESS.value,
+            ),
+            call(
+                constants.Service.QDRANT_SERVICE,
+                '1502f682-a81d-4dfc-9c8b-fd1e2ad829f2',
+                constants.StepStatus.COMPLETE.value,
+            )
+        ]
+    )
