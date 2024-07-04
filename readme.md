@@ -131,6 +131,7 @@ gutenberg/
 3. **Install the dependencies:**
    ```sh
    pip install -r requirements.txt
+   pre-commit install
    ```
 
 4. **Set up your environment variables:**

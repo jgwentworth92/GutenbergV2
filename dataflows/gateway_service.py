@@ -40,12 +40,12 @@ def process_message(msg: KafkaSourceMessage):
     )
 
     if resource_type in RESOURCE_TOPIC_MAPPING:
-        logger.info("Updated the status to completed")
         user_management_service.update_status(
             constants.Service.GATEWAY_SERVICE,
             job_id,
             constants.StepStatus.COMPLETE.value,
         )
+        logger.error(f"Updated the status")
         return KafkaSinkMessage(
             None, orjson.dumps(row), topic=RESOURCE_TOPIC_MAPPING[resource_type]
         )

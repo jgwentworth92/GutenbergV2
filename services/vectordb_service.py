@@ -5,7 +5,10 @@ from typing import Generator, Dict, Any, List
 
 from config.config_setting import config
 from logging_config import get_logger
+from models import constants
 from models.document import Document
+from services.user_management_service import user_management_service
+from utils.dataflow_processing_utils import extract_job_id
 from utils.get_qdrant import get_qdrant_vector_store
 from utils.model_utils import setup_embedding_model
 
@@ -50,9 +53,15 @@ def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any],
         logging.error(f"Failed to validate documents: {e} with message {message}")
         return
 
+    job_id = None
     try:
         collection_name = documents[0].metadata['collection_name']
         job_id = documents[0].metadata['job_id']
+        user_management_service.update_status(
+            constants.Service.QDRANT_SERVICE,
+            job_id,
+            constants.StepStatus.IN_PROGRESS.value,
+        )
         logging.info(f"Received request for {documents[0].metadata['collection_name']}")
         embed = setup_embedding_model()
         vectordb = get_qdrant_vector_store(host=config.VECTOR_DB_HOST, port=config.VECTOR_DB_PORT,
@@ -73,6 +82,17 @@ def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any],
                 "document_type": metadata.get('doc_type', 'UNKNOWN')
             }
             yield result_message
+        user_management_service.update_status(
+            constants.Service.QDRANT_SERVICE,
+            job_id,
+            constants.StepStatus.COMPLETE.value,
+        )
     except Exception as e:
         logging.error(f"Failed to add documents to Qdrant: {e}")
+        if job_id:
+            user_management_service.update_status(
+                constants.Service.QDRANT_SERVICE,
+                job_id,
+                constants.StepStatus.FAILED.value,
+            )
 
