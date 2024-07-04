@@ -10,7 +10,6 @@ from confluent_kafka import OFFSET_STORED
 from logging_config import setup_logging, get_logger
 from services.message_processing_service import process_messages
 from utils.dataflow_processing_utils import  extract_job_id
-from services.user_management_service import user_management_service
 
 setup_logging()
 logger = get_logger(__name__)
