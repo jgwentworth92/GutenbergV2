@@ -42,8 +42,9 @@ def process_message(msg: KafkaSourceMessage):
     if resource_type in RESOURCE_TOPIC_MAPPING:
         logger.info("Updated the status to completed")
         user_management_service.update_status(
-            constants.Service.GATEWAY_SERVICE,
             job_id,
+            constants.Service.GATEWAY_SERVICE.value,
+
             constants.StepStatus.COMPLETE.value,
         )
         return KafkaSinkMessage(
@@ -51,9 +52,9 @@ def process_message(msg: KafkaSourceMessage):
         )
     else:
         logger.error(f"Unrecognised resource! {resource_type}")
-        user_management_service.update_status(
-            constants.Service.GATEWAY_SERVICE, job_id, constants.StepStatus.COMPLETE
-        )
+        user_management_service.update_status(job_id,
+                                              constants.Service.GATEWAY_SERVICE.value, constants.StepStatus.FAILED.value
+                                              )
         return None
 
 
@@ -64,8 +65,8 @@ def update_status_in_progress(msg: KafkaSourceMessage):
     job_id = row["job_id"]
     logger.info(f"Updating status for job id {job_id}")
     user_management_service.update_status(
-        constants.Service.GATEWAY_SERVICE,
         job_id,
+        constants.Service.GATEWAY_SERVICE.value,
         constants.StepStatus.IN_PROGRESS.value,
     )
     return msg
