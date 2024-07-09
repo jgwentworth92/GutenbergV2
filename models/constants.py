@@ -10,7 +10,9 @@ class StepStatus(Enum):
 
 
 class Service(Enum):
-    GATEWAY_SERVICE = "gateway_service"
+    GATEWAY_SERVICE = "gateway"
+    DATAFLOW_TYPE_processing_llm = "data_processing_llm"
+    DATAFLOW_TYPE_processing_raw="data_processing"
+    DATAFLOW_TYPE_DATASINK = "data_sink"
 
-
-STEP_TYPE_MAPPING = {Service.GATEWAY_SERVICE: "gateway"}
+STEP_TYPE_MAPPING = {Service.GATEWAY_SERVICE: "gateway",Service.DATAFLOW_TYPE_processing_llm:"data_processing_llm",Service.DATAFLOW_TYPE_processing_raw:"data_processing_llm",Service.DATAFLOW_TYPE_DATASINK :"data_sink"}
