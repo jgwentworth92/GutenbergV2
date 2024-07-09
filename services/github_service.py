@@ -6,9 +6,11 @@ from orjson import orjson
 from config.config_setting import config
 from logging_config import get_logger
 from models.commit import CommitData, FileInfo
+from models.constants import StepStatus
 from models.document import Document
 
 logger = get_logger(__name__)
+from services.user_management_service import  UserManagementClient
 
 
 def fetch_repository(owner: str, repo_name: str) -> Any:
@@ -140,9 +142,7 @@ def fetch_and_emit_commits(resource_data: Dict[str, Any]) -> Generator[str, None
         all_commit_data = fetch_all_commit_data(commits, repo_name)
         latest_files = get_latest_files(all_commit_data)
         documents = create_documents(latest_files, all_commit_data,job_id)
-
-        for document in documents:
-            yield document.model_dump_json()
+        yield documents
         logger.info(f"Processed combined commit data into {len(documents)} documents for repo {repo_name}")
 
     except Exception as e:
