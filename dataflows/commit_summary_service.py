@@ -2,17 +2,21 @@ import json
 from datetime import timedelta
 from bytewax.dataflow import Dataflow
 import bytewax.operators as op
-from bytewax.connectors.kafka import operators as kop, KafkaSource, KafkaSink, KafkaSinkMessage
+from bytewax.connectors.kafka import operators as kop, KafkaSource, KafkaSink, KafkaSinkMessage, KafkaSourceMessage
 from icecream import ic
 from config.config_setting import config
 import orjson
 from confluent_kafka import OFFSET_STORED
-from logging_config import setup_logging
+from logging_config import setup_logging, get_logger
+from models import constants
+from models.document import Document
+from services.user_management_service import user_management_service
 from services.message_processing_service import process_messages
-from utils.dataflow_processing_utils import  extract_job_id
+from utils.dataflow_processing_utils import extract_job_id
 
 setup_logging()
 # Application setup
+logger = get_logger(__name__)
 brokers = [config.BROKERS]
 input_topic = config.OUTPUT_TOPIC
 output_topic = config.PROCESSED_TOPIC
@@ -27,27 +31,47 @@ ic(f"the stored offset is {OFFSET_STORED}")
 kafka_input = kop.input("kafka-in-2", flow, brokers=brokers, topics=[input_topic])
 op.inspect("inspect_err", kafka_input.errs).then(op.raises, "raise_errors")
 
-# Process each message
-processed_messages = op.flat_map("process_message", kafka_input.oks,
-                                 lambda msg: process_messages(orjson.loads(msg.value)))
-
-
-keyed_docs = op.key_on("key_by_job_id", processed_messages, extract_job_id)
-
 
 # Collect batches of records keyed by the same job_id
-batched_docs = op.collect(
-    "batch_records_by_key",
-    keyed_docs ,
-    timeout=timedelta(seconds=1),
-    max_size=50
+def update_status_in_progress(msg: KafkaSourceMessage):
+    messages = orjson.loads(msg.value)
+    data = [Document.model_validate_json(doc_json) for doc_json in messages]
+
+    row = data[0].metadata
+
+    job_id = row["job_id"]
+    logger.info(f"Updating status for job id {job_id}")
+    user_management_service.update_status(
+        job_id,
+        constants.Service.DATAFLOW_TYPE_processing_llm.value,
+        constants.StepStatus.IN_PROGRESS.value,
+    )
+    return data  # Return the validated documents instead of the original message
+
+
+# Process each message
+messages = op.map(
+    "update_status_in_progress",
+    kafka_input.oks,
+    update_status_in_progress,
 )
+processed_messages = op.flat_map("process_message", messages,
+                                 lambda docs: process_messages(docs))
 
 
-# Create a single KafkaSinkMessage for each batch
-keyless_docs = op.map("remove_key", batched_docs, lambda x: x[1])
+def update_status_complete(processed_docs):
+    if processed_docs:
+        job_id = processed_docs[0].metadata["job_id"]
+        logger.info(f"Updating status to complete for job id {job_id}")
+        user_management_service.update_status(
+            job_id,
+            constants.Service.DATAFLOW_TYPE_processing_llm.value,
+            constants.StepStatus.COMPLETE.value,
+        )
+    return [doc.model_dump_json() for doc in processed_docs]  # Convert each Document to JSON string
 
-# Create KafkaSinkMessages for each serialized commit data
-kafka_messages = op.map("create_kafka_messages", keyless_docs, lambda x: KafkaSinkMessage(None, orjson.dumps(x)))
+
+completed_messages = op.map("update_status_complete", processed_messages, update_status_complete)
+kafka_messages = op.map("create_kafka_messages", completed_messages, lambda x: KafkaSinkMessage(None, orjson.dumps(x)))
 
 op.output("kafka-output", kafka_messages, KafkaSink(brokers=brokers, topic=output_topic))
