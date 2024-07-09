@@ -26,7 +26,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-
+    networks:
+      - gutenberg-network
   init-topics:
     image: bitnami/kafka:latest
     container_name: init_topics
@@ -42,6 +43,8 @@ services:
     depends_on:
       kafka_b:
         condition: service_healthy
+    networks:
+      - gutenberg-network
   fastapi:
     container_name:   fastapi
     image: jgcapworh92/gutenberg-ingestion-api:latest
@@ -59,6 +62,8 @@ services:
       postgres:
         condition: service_healthy
     restart: always
+    networks:
+      - gutenberg-network
   gateway_service:
     build: .
     depends_on:
@@ -74,6 +79,8 @@ services:
     volumes:
       - ./recovery/gateway_service:/bytewax/recovery/gateway_service
       -  ./logs:/bytewax/logs
+    networks:
+      - gutenberg-network
     command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/gateway_service", "-s", "3", "-b", "0", "-w4", "dataflows/gateway_service"]
 
   github_listener:
@@ -94,6 +101,8 @@ services:
     volumes:
       - ./recovery/github_listener:/bytewax/recovery/github_listener
       -  ./logs:/bytewax/logs
+    networks:
+      - gutenberg-network
     command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/github_listener", "-s", "3", "-b", "0", "-w4", "dataflows/github_commit_processing"]
 
   llm_summary_service:
@@ -118,6 +127,8 @@ services:
     volumes:
       - ./recovery/commit_summary_service:/bytewax/recovery/commit_summary_service
       -  ./logs:/bytewax/logs
+    networks:
+      - gutenberg-network
     command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/commit_summary_service", "-s", "3", "-b", "0", "-w4", "dataflows/commit_summary_service"]
   pdf_summary_service:
     build: .
@@ -141,6 +152,8 @@ services:
       LOCAL_LLM_URL: "${LOCAL_LLM_URL}"
     volumes:
       - ./recovery/pdf_service:/bytewax/recovery/pdf_service
+    networks:
+      - gutenberg-network
     command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/pdf_service", "-s", "3", "-b", "0", "-w4", "dataflows/pdfProcessing"]
   qdrant:
     image: qdrant/qdrant
@@ -149,7 +162,8 @@ services:
       - "6334:6334"
     volumes:
       - qdrant-storage:/qdrant/storage:z
-
+    networks:
+      - gutenberg-network
   add_qdrant_service:
     build: .
     container_name: add_qdrant_service
@@ -172,6 +186,8 @@ services:
     volumes:
       - ./recovery/add_qdrant_service:/bytewax/recovery/add_qdrant_service
       -  ./logs:/bytewax/logs
+    networks:
+      - gutenberg-network
     command: ["python", "-m", "bytewax.run", "-r", "/bytewax/recovery/add_qdrant_service", "-s", "3", "-b", "0", "-w4", "dataflows/add_qdrant_service"]
 
   kafka-ui:
@@ -186,6 +202,8 @@ services:
       DYNAMIC_CONFIG_ENABLED: 'true'
     volumes:
       - ./kui/config.yml:/etc/kafkaui/dynamic_config.yaml
+    networks:
+      - gutenberg-network
 
   postgres:
     image: postgres:16.2
@@ -206,6 +224,8 @@ services:
       retries: 5
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    networks:
+      - gutenberg-network
   pgadmin:
     image: dpage/pgadmin4
     environment:
@@ -218,6 +238,8 @@ services:
       - "5050:80"
     volumes:
       - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - gutenberg-network
   debezium:
     image: debezium/connect:2.6.2.Final
     hostname: debezium
@@ -251,6 +273,8 @@ services:
       timeout: 10s
       retries: 5
       start_period: 40s
+    networks:
+      - gutenberg-network
   init-debezium:
     image: curlimages/curl:latest
     depends_on:
@@ -259,6 +283,8 @@ services:
     entrypoint: /kafka/debezium-setup/init-connector-config.sh
     volumes:
       - ./debezium-setup:/kafka/debezium-setup:ro
+    networks:
+      - gutenberg-network
 
 volumes:
   qdrant-storage:
@@ -267,3 +293,6 @@ volumes:
     driver: local
   postgres-data:
   pgadmin-data:
+networks:
+  gutenberg-network:
+    driver: bridge
