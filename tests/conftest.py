@@ -171,6 +171,10 @@ def sample_pdf_input():
         "created_at": "2024-06-19T23:33:49.763648Z",
         "updated_at": "2024-06-19T23:33:49.763648Z"
     }
+@pytest.fixture
+def mock_user_management_service():
+    with patch('utils.status_update.user_management_service') as mock_service:
+        yield mock_service
 
 
 @pytest.fixture
