@@ -8,6 +8,7 @@ from logging_config import get_logger
 from models.document import Document
 from utils.get_qdrant import get_qdrant_vector_store
 from utils.model_utils import setup_embedding_model
+from utils.status_update import StandardizedMessage
 
 logging = get_logger(__name__)
 
@@ -26,7 +27,7 @@ def generate_uuid_from_string(val: str) -> uuid.UUID:
     return uuid.UUID(hex=hex_string)
 
 
-def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any], None, None]:
+def process_message_to_vectordb(message:StandardizedMessage) -> Generator[Dict[str, Any], None, None]:
     """
     Processes a message containing documents and stores them in a vector database.
 
@@ -37,8 +38,7 @@ def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any],
         Generator[Dict[str, Any], None, None]: A generator yielding the result of the operation, including any errors.
     """
     try:
-        # First, parse each string in the message as JSON
-        parsed_docs = [json.loads(doc) for doc in message]
+        parsed_docs = [json.loads(doc) for doc in message.data['data']]
 
         # Then, validate each parsed JSON object as a Document
         documents = [Document.model_validate(doc) for doc in parsed_docs]
@@ -65,7 +65,7 @@ def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any],
         added_ids = vectordb.add_texts(texts=texts, metadatas=metadatas, ids=ids)
 
         logging.info(f"Processed {len(added_ids)} documents into vectordb collection")
-        for id, metadata in zip(added_ids, metadatas):
+        for id, metadata in zip(ids, metadatas):
             result_message = {
                 "collection_name": collection_name,
                 "vector_db_id": id,
