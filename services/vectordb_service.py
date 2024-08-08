@@ -5,10 +5,11 @@ from typing import Generator, Dict, Any, List
 
 from config.config_setting import config
 from logging_config import get_logger
+from models import constants
 from models.document import Document
 from utils.get_qdrant import get_qdrant_vector_store
 from utils.model_utils import setup_embedding_model
-from utils.status_update import StandardizedMessage
+from utils.status_update import StandardizedMessage, status_updater
 
 logging = get_logger(__name__)
 
@@ -26,7 +27,9 @@ def generate_uuid_from_string(val: str) -> uuid.UUID:
     logging.info(f"id produced {hex_string}")
     return uuid.UUID(hex=hex_string)
 
-
+@status_updater(constants.Service.DATAFLOW_TYPE_DATASINK)
+def insert_into_vectordb_with_status(message: StandardizedMessage):
+    return process_message_to_vectordb(message)
 def process_message_to_vectordb(message:StandardizedMessage) -> Generator[Dict[str, Any], None, None]:
     """
     Processes a message containing documents and stores them in a vector database.

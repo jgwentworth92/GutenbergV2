@@ -1,17 +1,18 @@
 import time
 from multiprocessing import Pool, cpu_count
-from typing import Dict, Any, Generator, Tuple
+from typing import Any, Generator, Tuple
+
 from github import Github, Auth
 from orjson import orjson
+
 from config.config_setting import config
 from logging_config import get_logger
+from models import constants
 from models.commit import CommitData, FileInfo
-from models.constants import StepStatus
 from models.document import Document
-from utils.status_update import StandardizedMessage
+from utils.status_update import StandardizedMessage, status_updater
 
 logger = get_logger(__name__)
-from services.user_management_service import  UserManagementClient
 
 
 def fetch_repository(owner: str, repo_name: str) -> Any:
@@ -130,7 +131,7 @@ def fetch_and_emit_commits(message: StandardizedMessage) -> Generator[Standardiz
     try:
         # The resource_data is nested inside the 'data' field of the message
         data = message.data['data']
-        resource_data=data['resource_data']
+        resource_data = data['resource_data']
         if not resource_data:
             logger.error(f"No resource_data found for job {message.data['data']}")
             return
@@ -139,7 +140,7 @@ def fetch_and_emit_commits(message: StandardizedMessage) -> Generator[Standardiz
         repo_info = orjson.loads(resource_data)
         owner = repo_info.get("owner")
         repo_name = repo_info.get("repo_name")
-        logger.info(f"repo {repo_name} with pased in { resource_data}")
+        logger.info(f"repo {repo_name} with pased in {resource_data}")
 
         if not owner or not repo_name:
             logger.error(f"Missing owner or repo_name for job {job_id}")
@@ -180,3 +181,8 @@ def fetch_and_emit_commits(message: StandardizedMessage) -> Generator[Standardiz
         end_time = time.time()
         total_time = end_time - start_time
         logger.info(f"Total time to process commits: {total_time:.2f} seconds")
+
+
+@status_updater(constants.Service.DATAFLOW_TYPE_processing_raw)
+def fetch_and_emit_commits_with_status(message: StandardizedMessage):
+    yield fetch_and_emit_commits(message)

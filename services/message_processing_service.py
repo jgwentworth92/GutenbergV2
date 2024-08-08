@@ -1,11 +1,12 @@
 from typing import Dict, Any, Generator, List
 from logging_config import get_logger
+from models import constants
 from utils.langchain_callback_logger import MyCustomHandler
 from utils.model_utils import setup_chat_model
 from models.document import Document
 import time
 
-from utils.status_update import StandardizedMessage
+from utils.status_update import StandardizedMessage, status_updater
 
 logger = get_logger(__name__)
 
@@ -24,7 +25,12 @@ def prepare_batch_inputs(documents: List[Document]) -> List[Dict[str, str]]:
     return [{"text": doc.page_content} for doc in documents]
 
 
-def process_messages(message: StandardizedMessage) -> Generator[List[Document], None, None]:
+@status_updater(constants.Service.DATAFLOW_TYPE_processing_llm)
+def process_raw_data_with_llm_and_status(message: StandardizedMessage):
+    yield process_raw_data_with_llm(message)
+
+
+def process_raw_data_with_llm(message: StandardizedMessage) -> Generator[List[Document], None, None]:
     """
     Processes a batch of documents, generating summaries for each and collecting the results.
 
@@ -38,7 +44,7 @@ def process_messages(message: StandardizedMessage) -> Generator[List[Document], 
     job_id = message.job_id
     try:
         data = message.data['data']
-        documents=[Document.model_validate_json(doc_json) for doc_json in data]
+        documents = [Document.model_validate_json(doc_json) for doc_json in data]
         handler = MyCustomHandler(logger)
         config = {"max_concurrency": 5, "callbacks": [handler]}
         if not documents:
@@ -70,10 +76,10 @@ def process_messages(message: StandardizedMessage) -> Generator[List[Document], 
             job_id=job_id,
             step_number=message.step_number,
             data=[doc.model_dump_json() for doc in combined_results],
-            metadata={**message.metadata,  "document_count": len(batch_results)}
+            metadata={**message.metadata, "document_count": len(batch_results)}
         )
     except ValueError as e:
-        logger.error({"error": "Invalid document format", "details": str(e), "data":message})
+        logger.error({"error": "Invalid document format", "details": str(e), "data": message})
     except Exception as e:
         logger.error({"error": "Failed to process messages", "details": str(e), "data": message})
     finally:

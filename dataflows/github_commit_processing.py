@@ -8,8 +8,8 @@ from icecream import ic
 from config.config_setting import config
 from logging_config import setup_logging, get_logger
 from models import constants
-from services.github_service import fetch_and_emit_commits
-from utils.status_update import create_status_updater, StandardizedMessage
+from services.github_service import fetch_and_emit_commits, fetch_and_emit_commits_with_status
+from utils.status_update import status_updater, StandardizedMessage
 
 setup_logging()
 logger = get_logger(__name__)
@@ -47,19 +47,19 @@ standardized_messages = op.map(
     kafka_to_standardized,
 )
 
-# Create status updater for this service
-status_updater = create_status_updater(constants.Service.DATAFLOW_TYPE_processing_raw)
+# Apply the status updater decorator to fetch_and_emit_commits
 
-# Wrap fetch_and_emit_commits with status updater
+
+# Use the decorated function in the dataflow
 processed_commits = op.flat_map(
     "fetch_and_emit_commits_with_status",
     standardized_messages,
-    status_updater(fetch_and_emit_commits)
+    fetch_and_emit_commits_with_status
 )
 
 
 def serialize_standardized_message(msg: StandardizedMessage):
-    return orjson.dumps(msg.__dict__)
+    return msg.model_dump_json()
 
 
 serialized_docs = op.map("serialize_documents", processed_commits, serialize_standardized_message)
