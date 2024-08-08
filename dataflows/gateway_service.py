@@ -1,77 +1,84 @@
-from bytewax.dataflow import Dataflow
-import bytewax.operators as op
-from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage, KafkaSourceMessage
-from icecream import ic
-from confluent_kafka import OFFSET_STORED
-from config.config_setting import config
-from logging_config import setup_logging, get_logger
-from models import constants
-from services.github_service import fetch_and_emit_commits
 import orjson
+from typing import Optional
+from bytewax import operators as op
+from bytewax.dataflow import Dataflow
+from bytewax.connectors.kafka import (
+    KafkaSource,
+    KafkaSink,
+    KafkaSinkMessage,
+    KafkaSourceMessage,
+)
+from models import constants
+from config.config_setting import config
+from logging_config import get_logger, setup_logging
 from utils.status_update import create_status_updater, StandardizedMessage
 
 setup_logging()
 logger = get_logger(__name__)
 
-# Application setup
-brokers = [config.BROKERS]
-input_topic = config.GITHUB_TOPIC
-output_topic = config.OUTPUT_TOPIC
-consumer_config = config.CONSUMER_CONFIG
-producer_config = config.PRODUCER_CONFIG
+flow = Dataflow("Gateway Service")
 
-# Bytewax dataflow setup
-flow = Dataflow("github_commit_processing")
-ic(f"the stored offset is {OFFSET_STORED}")
-
-# Input from Kafka topic
-kafka_input = op.input("kafka-in", flow,
-                       KafkaSource(brokers=brokers, topics=[input_topic],
-                                   add_config=producer_config))
+RESOURCE_TOPIC_MAPPING = {"github": config.GITHUB_TOPIC, "pdf": config.PDF_INPUT}
 
 
 def kafka_to_standardized(msg: KafkaSourceMessage) -> StandardizedMessage:
     data = orjson.loads(msg.value)
+    row = data["payload"]["after"]
     return StandardizedMessage(
-        job_id=data["job_id"],
-        step_number=2,
-        data=data,
+        job_id=row["job_id"],
+        step_number=1,
+        data=row,
         metadata={"original_topic": msg.topic}
     )
 
 
-standardized_messages = op.map(
-    "kafka_to_standardized",
-    kafka_input,
-    kafka_to_standardized,
+def process_and_route_message(message: StandardizedMessage) -> Optional[StandardizedMessage]:
+    resource_type = message.data["resource_type"]
+    logger.info(f"Processing message for job {message.job_id}, resource type: {resource_type}")
+
+    if resource_type in RESOURCE_TOPIC_MAPPING:
+        logger.info(f"Message processed successfully for job {message.job_id}")
+        message.metadata["output_topic"] = RESOURCE_TOPIC_MAPPING[resource_type]
+        return message
+    else:
+        logger.error(f"Unrecognised resource type {resource_type} for job {message.job_id}")
+        return None
+
+
+def standardized_to_kafka(message: Optional[StandardizedMessage]) -> Optional[KafkaSinkMessage]:
+    if message is not None and "output_topic" in message.metadata:
+        return KafkaSinkMessage(
+            None,
+            orjson.dumps(message.__dict__),
+            topic=message.metadata["output_topic"]
+        )
+    return None
+
+
+# Create status updater
+status_updater = create_status_updater(constants.Service.GATEWAY_SERVICE)
+
+# Create processor with status updates
+processor_with_status = status_updater(process_and_route_message)
+
+# Define the dataflow
+kafka_input = op.input(
+    "read-kafka-message",
+    flow,
+    KafkaSource(
+        brokers=[config.BROKERS],
+        topics=[config.RESOURCE_TOPIC],
+        add_config=config.CONSUMER_CONFIG,
+    ),
 )
 
-# Create status updater for this service
-status_updater = create_status_updater(constants.Service.DATAFLOW_TYPE_processing_raw)
+standardized_messages = op.map("kafka_to_standardized", kafka_input, kafka_to_standardized)
+processed_messages = op.map("process_and_route_messages", standardized_messages, processor_with_status)
+kafka_messages = op.map("standardized_to_kafka", processed_messages, standardized_to_kafka)
 
-# Wrap fetch_and_emit_commits with status updater
-processed_commits = op.flat_map(
-    "process_commits",
-    standardized_messages,
-    status_updater(fetch_and_emit_commits)
-)
+# Filter out None values
+valid_messages = op.filter("filter_valid_messages", kafka_messages, lambda msg: msg is not None)
 
-# Filter out None results
-valid_commits = op.filter(
-    "filter_valid_commits",
-    processed_commits,
-    lambda msg: msg is not None
-)
+op.output("kafka-output", valid_messages, KafkaSink(brokers=[config.BROKERS], topic=None))
 
-
-def serialize_standardized_message(msg: StandardizedMessage):
-    return orjson.dumps(msg.__dict__)
-
-
-serialized_docs = op.map("serialize_documents", valid_commits, serialize_standardized_message)
-
-kafka_messages = op.map("create_kafka_messages", serialized_docs, lambda x: KafkaSinkMessage(None, x))
-
-# Output serialized data to Kafka
-op.output("kafka-vector-raw-add", kafka_messages,
-          KafkaSink(brokers=brokers, topic=output_topic, add_config=producer_config))
+logger.info("Gateway Service dataflow setup completed")
