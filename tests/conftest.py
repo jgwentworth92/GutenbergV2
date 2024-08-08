@@ -6,7 +6,7 @@ import subprocess
 import pytest
 import bytewax.operators as op
 import orjson
-
+from utils.status_update import StandardizedMessage
 from bytewax.dataflow import Dataflow
 from bytewax.testing import TestingSource, TestingSink, run_main
 import pytest
@@ -150,6 +150,17 @@ def consume_messages():
 
     return _consume_messages
 
+
+@pytest.fixture
+def standard_message_factory():
+    def _create_message(job_id, step_number, data, metadata=None):
+        return StandardizedMessage(
+            job_id=job_id,
+            step_number=step_number,
+            data=data,
+            metadata=metadata or {}
+        )
+    return _create_message
 @pytest.fixture
 def sample_pdf_input():
     return {
@@ -160,17 +171,18 @@ def sample_pdf_input():
         "created_at": "2024-06-19T23:33:49.763648Z",
         "updated_at": "2024-06-19T23:33:49.763648Z"
     }
+
+
 @pytest.fixture
 def sample_repo_info_1():
     return {
-	"id": "94f88c26-2b4e-48a5-902a-49bd857e5aa3",
-	"job_id": "1502f682-a81d-4dfc-9c8b-fd1e2ad829f2",
-	"resource_type": "github",
-	"resource_data": "{\"owner\": \"octocat\", \"repo_name\": \"Hello-World\"}",
-	"created_at": "2024-06-19T21:23:00.884795Z",
-	"updated_at": "2024-06-19T21:23:00.884795Z"
-}
-
+        "id": "94f88c26-2b4e-48a5-902a-49bd857e5aa3",
+        "job_id": "1502f682-a81d-4dfc-9c8b-fd1e2ad829f2",
+        "resource_type": "github",
+        "resource_data": '{"owner": "octocat", "repo_name": "Hello-World"}',
+        "created_at": "2024-06-19T21:23:00.884795Z",
+        "updated_at": "2024-06-19T21:23:00.884795Z"
+    }
 @pytest.fixture
 def kafka_message_factory():
     def _kafka_message(data):
