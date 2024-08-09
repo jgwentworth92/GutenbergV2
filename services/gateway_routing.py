@@ -24,25 +24,20 @@ def kafka_to_standardized(msg: KafkaSourceMessage) -> StandardizedMessage:
 
 
 @status_updater(constants.Service.GATEWAY_SERVICE)
-def process_and_route_message(message: StandardizedMessage) -> Optional[StandardizedMessage]:
+def process_and_route_message(message: StandardizedMessage) -> Optional[KafkaSinkMessage]:
     resource_type = message.data["resource_type"]
     logger.info(f"Processing message for job {message.job_id}, resource type: {resource_type}")
 
     if resource_type in RESOURCE_TOPIC_MAPPING:
         logger.info(f"Message processed successfully for job {message.job_id}")
-        message.metadata["output_topic"] = RESOURCE_TOPIC_MAPPING[resource_type]
-        return message
+        output_topic = RESOURCE_TOPIC_MAPPING[resource_type]
+        return KafkaSinkMessage(
+            key=None,
+            value=message.model_dump_json(),
+            topic=output_topic
+        )
     else:
         logger.error(f"Unrecognised resource type {resource_type} for job {message.job_id}")
         return None
 
 
-def standardized_to_kafka(message: Optional[StandardizedMessage]) -> Optional[KafkaSinkMessage]:
-    if isinstance(message, StandardizedMessage) and "output_topic" in message.metadata:
-        return KafkaSinkMessage(
-            None,
-            orjson.dumps(message.__dict__),
-            topic=message.metadata["output_topic"]
-        )
-    logger.warning(f"Received invalid message or message without output_topic: {message}")
-    return None

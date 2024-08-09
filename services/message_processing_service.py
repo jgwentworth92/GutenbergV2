@@ -27,7 +27,7 @@ def prepare_batch_inputs(documents: List[Document]) -> List[Dict[str, str]]:
 
 @status_updater(constants.Service.DATAFLOW_TYPE_processing_llm)
 def process_raw_data_with_llm_and_status(message: StandardizedMessage):
-    yield process_raw_data_with_llm(message)
+    return process_raw_data_with_llm(message)
 
 
 def process_raw_data_with_llm(message: StandardizedMessage) -> Generator[List[Document], None, None]:

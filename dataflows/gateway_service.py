@@ -6,7 +6,7 @@ from bytewax.connectors.kafka import (
 from bytewax.dataflow import Dataflow
 from config.config_setting import config
 from logging_config import get_logger, setup_logging
-from services.gateway_routing import standardized_to_kafka, process_and_route_message, kafka_to_standardized
+from services.gateway_routing import  process_and_route_message, kafka_to_standardized
 
 setup_logging()
 logger = get_logger(__name__)
@@ -27,10 +27,19 @@ kafka_input = op.input(
 
 standardized_messages = op.map("kafka_to_standardized", kafka_input, kafka_to_standardized)
 processed_messages = op.map("process_and_route_messages", standardized_messages, process_and_route_message)
-kafka_messages = op.map("standardized_to_kafka", processed_messages, standardized_to_kafka)
 
 # Filter out None values
-valid_messages = op.filter("filter_valid_messages", kafka_messages, lambda msg: msg is not None)
+valid_messages = op.filter(
+    "unwrap_and_filter_valid_messages",
+    processed_messages,
+    lambda result: result and isinstance(result, list) and len(result) > 0 and result[0] is not None
+)
+unwrapped_messages = op.map(
+    "extract_kafka_sink_message",
+    valid_messages,
+    lambda result: result[0]
+)
 
-op.output("kafka-output", valid_messages, KafkaSink(brokers=[config.BROKERS], topic=None))
+op.output("kafka-output", unwrapped_messages, KafkaSink(brokers=[config.BROKERS], topic=None))
+
 

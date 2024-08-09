@@ -185,4 +185,4 @@ def fetch_and_emit_commits(message: StandardizedMessage) -> Generator[Standardiz
 
 @status_updater(constants.Service.DATAFLOW_TYPE_processing_raw)
 def fetch_and_emit_commits_with_status(message: StandardizedMessage):
-    yield fetch_and_emit_commits(message)
+    return fetch_and_emit_commits(message)
