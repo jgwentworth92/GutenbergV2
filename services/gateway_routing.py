@@ -23,8 +23,8 @@ def kafka_to_standardized(msg: KafkaSourceMessage) -> StandardizedMessage:
     )
 
 
-@status_updater(constants.Service.GATEWAY_SERVICE)
-def process_and_route_message(message: StandardizedMessage) -> Optional[KafkaSinkMessage]:
+
+def process_and_route_message_base(message: StandardizedMessage) -> Optional[KafkaSinkMessage]:
     resource_type = message.data["resource_type"]
     logger.info(f"Processing message for job {message.job_id}, resource type: {resource_type}")
 
@@ -40,4 +40,6 @@ def process_and_route_message(message: StandardizedMessage) -> Optional[KafkaSin
         logger.error(f"Unrecognised resource type {resource_type} for job {message.job_id}")
         return None
 
-
+@status_updater(constants.Service.GATEWAY_SERVICE)
+def process_and_route_message(message: StandardizedMessage) -> Optional[KafkaSinkMessage]:
+    return process_and_route_message_base(message)
