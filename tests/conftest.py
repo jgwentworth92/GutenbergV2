@@ -6,11 +6,13 @@ import subprocess
 import pytest
 import bytewax.operators as op
 import orjson
+from bytewax.connectors.kafka import KafkaSourceMessage
+
 from utils.status_update import StandardizedMessage
 from bytewax.dataflow import Dataflow
 from bytewax.testing import TestingSource, TestingSink, run_main
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, Mock
 from confluent_kafka import Producer, Consumer, KafkaException
 from github import Github, Auth
 
@@ -61,6 +63,39 @@ def sample_prepare_payload():
     def prepare(item):
         return [{"key": "value"}]
     return prepare
+@pytest.fixture
+def mock_qdrant_instance():
+    mock = MagicMock()
+    mock.add_texts.return_value = ["mocked_id"]
+    return mock
+
+@pytest.fixture
+def mock_get_qdrant(mock_qdrant_instance):
+    with patch('services.vectordb_service.get_qdrant_vector_store') as mock_get:
+        mock_get.return_value = mock_qdrant_instance
+        yield mock_get
+
+@pytest.fixture
+def mock_setup_embedding():
+    with patch('services.vectordb_service.setup_embedding_model') as mock:
+        yield mock
+
+@pytest.fixture
+def sample_standardized_message():
+    doc = Document(
+        page_content="Test content",
+        metadata={
+            "collection_name": "test_collection",
+            "job_id": "test_job_id",
+            "vector_id": "test_vector_id",
+            "doc_type": "TEST_TYPE"
+        }
+    )
+    return StandardizedMessage(
+        job_id="test_job_id",
+        step_number=1,
+        data=[doc.model_dump_json()]
+    )
 @pytest.fixture(scope="module")
 def setup_bytewax_dataflows():
     logger.info("Starting Bytewax dataflows...")
@@ -171,12 +206,50 @@ def sample_pdf_input():
         "created_at": "2024-06-19T23:33:49.763648Z",
         "updated_at": "2024-06-19T23:33:49.763648Z"
     }
+
+@pytest.fixture
+def mock_kafka_source_message():
+    return KafkaSourceMessage(
+        topic="test_topic",
+        partition=0,
+        offset=0,
+        key=None,
+        value=b'{"payload": {"after": {"job_id": "123", "resource_type": "github"}}}'
+    )
+@pytest.fixture
+def qdrant_standardized_message(qdrant_event_data):
+    return StandardizedMessage(
+        job_id="1502f682-a81d-4dfc-9c8b-fd1e2ad829f2",
+        step_number=1,
+        data=qdrant_event_data
+    )
+@pytest.fixture
+def mock_standardized_message():
+    return StandardizedMessage(
+        job_id="123",
+        step_number=1,
+        data={"resource_type": "github"},
+        metadata={"original_topic": "test_topic"}
+    )
 @pytest.fixture
 def mock_user_management_service():
     with patch('utils.status_update.user_management_service') as mock_service:
+        mock_service.update_status.return_value = {"status": "success"}
         yield mock_service
 
+@pytest.fixture
+def mock_logger():
+    with patch('logging_config.get_logger') as mock_get_logger:
+        mock_logger = Mock()
+        mock_get_logger.return_value = mock_logger
+        yield mock_logger
 
+@pytest.fixture
+def mock_config():
+    with patch('config.config_setting.config') as mock_conf:
+        mock_conf.GITHUB_TOPIC = "github_topic"
+        mock_conf.PDF_INPUT = "pdf_input_topic"
+        yield mock_conf
 @pytest.fixture
 def sample_repo_info_1():
     return {

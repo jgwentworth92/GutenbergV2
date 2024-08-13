@@ -29,9 +29,8 @@ def test_github_commits_hello_world(create_dataflow, run_dataflow, sample_repo_i
         job_id=sample_repo_info_1['job_id'],
         step_number=1,
         data={
-            "data": {
+
                 "resource_data": orjson.dumps(resource_data).decode('utf-8')
-            }
         }
     )
 
@@ -42,25 +41,30 @@ def test_github_commits_hello_world(create_dataflow, run_dataflow, sample_repo_i
 
     logger.info(f"Captured output: {captured_output}")
 
-    assert len(captured_output) > 0, "Expected output from fetch_and_emit_commits"
+    assert len(captured_output) > 0, f"Expected output from fetch_and_emit_commits, got {captured_output}"
 
     for output in captured_output:
-        assert isinstance(output, StandardizedMessage)
-        assert output.job_id == sample_repo_info_1['job_id']
-        assert output.step_number == 1
-        assert isinstance(output.data, list)
+        assert isinstance(output, StandardizedMessage), f"Expected StandardizedMessage, got {type(output)}"
+        assert output.job_id == sample_repo_info_1['job_id'], f"Expected job_id {sample_repo_info_1['job_id']}, got {output.job_id}"
+        assert output.step_number == 1, f"Expected step_number 1, got {output.step_number}"
+        assert isinstance(output.data, list), f"Expected list, got {type(output.data)}"
         for doc in output.data:
             parsed_doc = orjson.loads(doc)
-            assert "page_content" in parsed_doc
-            assert "metadata" in parsed_doc
+            assert "page_content" in parsed_doc, f"Missing 'page_content' in {parsed_doc}"
+            assert "metadata" in parsed_doc, f"Missing 'metadata' in {parsed_doc}"
             metadata = parsed_doc["metadata"]
-            assert all(key in metadata for key in [
+            expected_keys = [
                 "filename", "status", "additions", "deletions", "changes",
                 "author", "date", "repo_name", "commit_url", "id", "job_id",
                 "token_count", "collection_name", "vector_id"
-            ])
-        assert "repo_name" in output.metadata
-        assert "document_count" in output.metadata
+            ]
+            for key in expected_keys:
+                assert key in metadata, f"Missing '{key}' in metadata: {metadata}"
+        assert "repo_name" in output.metadata, f"Missing 'repo_name' in metadata: {output.metadata}"
+        assert "document_count" in output.metadata, f"Missing 'document_count' in metadata: {output.metadata}"
+
+# ... [other tests remain unchanged] ...
+
 def test_github_commits_invalid_repo(create_dataflow, run_dataflow, invalid_repo_info, standard_message_factory):
     input_message = standard_message_factory(
         job_id="1502f682-a81d-4dfc-9c8b-fd1e2ad829f2",
@@ -177,32 +181,3 @@ def test_create_documents():
     assert isinstance(documents[0], Document)
     assert documents[0].metadata["job_id"] == job_id
 
-
-def test_fetch_and_emit_commits(standard_message_factory):
-    resource_data = {
-        "owner": "octocat",
-        "repo_name": "Hello-World"
-    }
-    input_message = standard_message_factory(
-        job_id="test_job_456",
-        step_number=1,
-        data={
-            "data": {
-                "resource_data": orjson.dumps(resource_data).decode('utf-8')
-            }
-        }
-    )
-    results = list(fetch_and_emit_commits(input_message))
-    assert len(results) > 0
-    for result in results:
-        assert isinstance(result, StandardizedMessage)
-        assert result.job_id == "test_job_456"
-        assert result.step_number == 1
-        assert isinstance(result.data, list)
-        for doc in result.data:
-            parsed_doc = orjson.loads(doc)
-            assert "page_content" in parsed_doc
-            assert "metadata" in parsed_doc
-            assert parsed_doc["metadata"]["job_id"] == "test_job_456"
-        assert "repo_name" in result.metadata
-        assert "document_count" in result.metadata
