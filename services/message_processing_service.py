@@ -43,8 +43,8 @@ def process_raw_data_with_llm(message: StandardizedMessage) -> Generator[List[Do
     start_time = time.time()
     job_id = message.job_id
     try:
-        data = message.data['data']
-        documents = [Document.model_validate_json(doc_json) for doc_json in data]
+
+        documents = [Document.model_validate_json(doc_json) for doc_json in message.data]
         handler = MyCustomHandler(logger)
         config = {"max_concurrency": 5, "callbacks": [handler]}
         if not documents:

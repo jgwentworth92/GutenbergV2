@@ -41,7 +41,7 @@ def process_message_to_vectordb(message:StandardizedMessage) -> Generator[Dict[s
         Generator[Dict[str, Any], None, None]: A generator yielding the result of the operation, including any errors.
     """
     try:
-        parsed_docs = [json.loads(doc) for doc in message.data['data']]
+        parsed_docs = [json.loads(doc) for doc in message.data]
 
         # Then, validate each parsed JSON object as a Document
         documents = [Document.model_validate(doc) for doc in parsed_docs]

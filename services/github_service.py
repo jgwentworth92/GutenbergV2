@@ -130,10 +130,10 @@ def fetch_and_emit_commits(message: StandardizedMessage) -> Generator[Standardiz
 
     try:
         # The resource_data is nested inside the 'data' field of the message
-        data = message.data['data']
+        data = message.data
         resource_data = data['resource_data']
         if not resource_data:
-            logger.error(f"No resource_data found for job {message.data['data']}")
+            logger.error(f"No resource_data found for job {message.data}")
             return
 
         # resource_data is a string, so we need to parse it
