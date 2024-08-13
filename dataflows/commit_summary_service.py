@@ -10,6 +10,7 @@ from dataflows.github_commit_processing import serialize_standardized_message
 from logging_config import setup_logging, get_logger
 
 from services.message_processing_service import process_raw_data_with_llm_and_status
+from utils.dataflow_processing_utils import kafka_to_standardized
 from utils.status_update import StandardizedMessage
 
 setup_logging()
@@ -26,15 +27,7 @@ flow = Dataflow("llm_raw_data_processing_service")
 ic(f"the stored offset is {OFFSET_STORED}")
 
 
-def kafka_to_standardized(msg: KafkaSourceMessage) -> StandardizedMessage:
-    data = orjson.loads(msg.value)
 
-    return StandardizedMessage(
-        job_id=data["job_id"],
-        step_number=3,
-        data=data,
-        metadata={"original_topic": msg.topic}
-    )
 
 
 # Create KafkaSource for consuming messages from Kafka

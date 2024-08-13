@@ -11,7 +11,7 @@ from logging_config import setup_logging, get_logger
 from models import constants
 from services.vectordb_service import insert_into_vectordb_with_status
 
-from utils.dataflow_processing_utils import prepare_payload
+from utils.dataflow_processing_utils import prepare_payload, kafka_to_standardized
 from utils.status_update import StandardizedMessage, status_updater
 
 setup_logging()
@@ -31,14 +31,7 @@ vectordb_input = op.input("llm-processed-in", flow,
                           KafkaSource(brokers=[brokers], topics=[llm_processed_topic], add_config=consumer_config))
 
 
-def kafka_to_standardized(msg: KafkaSourceMessage) -> StandardizedMessage:
-    data = orjson.loads(msg.value)
-    return StandardizedMessage(
-        job_id=data["job_id"],
-        step_number=4,  # Assuming this is the fourth step in the overall process
-        data=data,
-        metadata={"original_topic": msg.topic}
-    )
+
 
 
 standardized_messages = op.map(

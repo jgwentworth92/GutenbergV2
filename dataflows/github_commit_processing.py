@@ -9,6 +9,7 @@ from config.config_setting import config
 from logging_config import setup_logging, get_logger
 from models import constants
 from services.github_service import fetch_and_emit_commits, fetch_and_emit_commits_with_status
+from utils.dataflow_processing_utils import kafka_to_standardized
 from utils.status_update import status_updater, StandardizedMessage
 
 setup_logging()
@@ -31,14 +32,6 @@ kafka_input = op.input("kafka-in", flow,
                                    add_config=producer_config))
 
 
-def kafka_to_standardized(msg: KafkaSourceMessage) -> StandardizedMessage:
-    data = orjson.loads(msg.value)
-    return StandardizedMessage(
-        job_id=data["job_id"],
-        step_number=2,  # Assuming this is the second step in the overall process
-        data=data,
-        metadata={"original_topic": msg.topic}
-    )
 
 
 standardized_messages = op.map(
@@ -47,10 +40,7 @@ standardized_messages = op.map(
     kafka_to_standardized,
 )
 
-# Apply the status updater decorator to fetch_and_emit_commits
 
-
-# Use the decorated function in the dataflow
 processed_commits = op.flat_map(
     "fetch_and_emit_commits_with_status",
     standardized_messages,
