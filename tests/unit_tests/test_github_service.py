@@ -1,10 +1,8 @@
-
 import pytest
 from github import Github, Auth
 import orjson
-from unittest import mock
 
-from models import constants
+from logging_config import get_logger, setup_logging
 from services.github_service import (
     fetch_repository,
     create_document,
@@ -17,49 +15,66 @@ from services.github_service import (
 from models.commit import CommitData, FileInfo
 from models.document import Document
 from config.config_setting import config
+from utils.status_update import StandardizedMessage
 
-# Test for the github_listener_dataflow
-@mock.patch('services.user_management_service.user_management_service.update_status')
-def test_github_commits_hello_world(mock_update_status, create_dataflow, run_dataflow, sample_repo_info_1):
-    flow, captured_output = create_dataflow(fetch_and_emit_commits, sample_repo_info_1)
-    run_dataflow(flow)
-    mock_update_status.assert_any_call(
-        constants.Service.GITHUB_SERVICE,
-        sample_repo_info_1['job_id'],
-        constants.StepStatus.COMPLETE.value,
+
+setup_logging()
+logger = get_logger(__name__)
+
+
+def test_github_commits_hello_world(create_dataflow, run_dataflow, sample_repo_info_1, standard_message_factory):
+    # Correctly structure the input data
+    resource_data = orjson.loads(sample_repo_info_1['resource_data'])
+    input_message = standard_message_factory(
+        job_id=sample_repo_info_1['job_id'],
+        step_number=1,
+        data={
+
+                "resource_data": orjson.dumps(resource_data).decode('utf-8')
+        }
     )
 
-    for data in captured_output:
-        if "commit_id" in data[0]:
-            rtn=data[0]
-            assert "page_content" in data[0]
-            assert "metadata" in rtn
-            assert "filename" in rtn["metadata"]
-            assert "status" in rtn["metadata"]
-            assert "additions" in rtn["metadata"]
-            assert "deletions" in rtn["metadata"]
-            assert "changes" in rtn["metadata"]
-            assert "author" in rtn["metadata"]
-            assert "date" in rtn["metadata"]
-            assert "repo_name" in rtn["metadata"]
-            assert "commit_url" in rtn["metadata"]
-            assert "id" in data["metadata"]
-            assert "token_count" in rtn["metadata"]
+    logger.info(f"Input message: {input_message}")
 
-
-@mock.patch('services.user_management_service.user_management_service.update_status')
-def test_github_commits_invalid_repo(mock_update_status, create_dataflow, run_dataflow, invalid_repo_info):
-    flow, captured_output = create_dataflow(fetch_and_emit_commits, invalid_repo_info)
+    flow, captured_output = create_dataflow(fetch_and_emit_commits, input_message)
     run_dataflow(flow)
-    mock_update_status.assert_called_with(
-        constants.Service.GITHUB_SERVICE,
-        '1502f682-a81d-4dfc-9c8b-fd1e2ad829f2',
-        constants.StepStatus.FAILED.value,
+
+    logger.info(f"Captured output: {captured_output}")
+
+    assert len(captured_output) > 0, f"Expected output from fetch_and_emit_commits, got {captured_output}"
+
+    for output in captured_output:
+        assert isinstance(output, StandardizedMessage), f"Expected StandardizedMessage, got {type(output)}"
+        assert output.job_id == sample_repo_info_1['job_id'], f"Expected job_id {sample_repo_info_1['job_id']}, got {output.job_id}"
+        assert output.step_number == 1, f"Expected step_number 1, got {output.step_number}"
+        assert isinstance(output.data, list), f"Expected list, got {type(output.data)}"
+        for doc in output.data:
+            parsed_doc = orjson.loads(doc)
+            assert "page_content" in parsed_doc, f"Missing 'page_content' in {parsed_doc}"
+            assert "metadata" in parsed_doc, f"Missing 'metadata' in {parsed_doc}"
+            metadata = parsed_doc["metadata"]
+            expected_keys = [
+                "filename", "status", "additions", "deletions", "changes",
+                "author", "date", "repo_name", "commit_url", "id", "job_id",
+                "token_count", "collection_name", "vector_id"
+            ]
+            for key in expected_keys:
+                assert key in metadata, f"Missing '{key}' in metadata: {metadata}"
+        assert "repo_name" in output.metadata, f"Missing 'repo_name' in metadata: {output.metadata}"
+        assert "document_count" in output.metadata, f"Missing 'document_count' in metadata: {output.metadata}"
+
+# ... [other tests remain unchanged] ...
+
+def test_github_commits_invalid_repo(create_dataflow, run_dataflow, invalid_repo_info, standard_message_factory):
+    input_message = standard_message_factory(
+        job_id="1502f682-a81d-4dfc-9c8b-fd1e2ad829f2",
+        step_number=1,
+        data={"data": {"resource_data": orjson.dumps(invalid_repo_info).decode('utf-8')}}
     )
-    for data in captured_output:
-        assert "error" in data
-        assert "details" in data
-        assert "repo" in data or "commit_id" in data
+    flow, captured_output = create_dataflow(fetch_and_emit_commits, input_message)
+    run_dataflow(flow)
+
+    assert len(captured_output) == 0  # Expecting no output for invalid repo
 
 
 def test_fetch_repository():
@@ -68,6 +83,7 @@ def test_fetch_repository():
     repo = fetch_repository(owner, repo_name)
     assert repo is not None
     assert repo.full_name == f"{owner}/{repo_name}"
+
 
 def test_create_document():
     file_info = FileInfo(
@@ -94,6 +110,7 @@ def test_create_document():
     assert document.page_content.startswith("Filename: README.md")
     assert document.metadata["job_id"] == job_id
 
+
 def test_fetch_commit_data(github_client):
     repo = github_client.get_repo("octocat/Hello-World")
     commit = repo.get_commits()[0]
@@ -102,6 +119,7 @@ def test_fetch_commit_data(github_client):
     assert commit_data.repo_name == repo.name
     assert commit_data.commit_id == commit.sha
 
+
 @pytest.mark.parametrize("repo_name", [("octocat/Hello-World"), ("pytorch/pytorch")])
 def test_fetch_all_commit_data(github_client, repo_name):
     repo = github_client.get_repo(repo_name)
@@ -109,6 +127,7 @@ def test_fetch_all_commit_data(github_client, repo_name):
     all_commit_data = fetch_all_commit_data(commits, repo.name)
     assert len(all_commit_data) == len(commits)
     assert all(isinstance(cd, CommitData) for cd in all_commit_data)
+
 
 def test_get_latest_files():
     commit_data_1 = CommitData(
@@ -133,6 +152,7 @@ def test_get_latest_files():
     latest_files = get_latest_files(all_commit_data)
     assert len(latest_files) == 1
     assert latest_files["file1.txt"]["commit_id"] == "222"
+
 
 def test_create_documents():
     file_info = FileInfo(
@@ -161,22 +181,3 @@ def test_create_documents():
     assert isinstance(documents[0], Document)
     assert documents[0].metadata["job_id"] == job_id
 
-@mock.patch('services.user_management_service.user_management_service.update_status')
-def test_fetch_and_emit_commits(mock_update_status):
-    resource_data = {
-        "resource_data": orjson.dumps({"owner": "octocat", "repo_name": "Hello-World"}),
-        "job_id": "test_job_456"
-    }
-    documents = list(fetch_and_emit_commits(resource_data))
-    mock_update_status.assert_called_with(
-        constants.Service.GITHUB_SERVICE,
-        'test_job_456',
-        constants.StepStatus.COMPLETE.value,
-    )
-    assert len(documents) > 0
-    for doc in documents:
-        assert isinstance(doc, str)
-        parsed_doc = orjson.loads(doc)
-        assert "page_content" in parsed_doc
-        assert "metadata" in parsed_doc
-        assert parsed_doc["metadata"]["job_id"] == "test_job_456"

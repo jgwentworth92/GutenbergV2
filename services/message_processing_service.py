@@ -1,15 +1,12 @@
-import orjson
 from typing import Dict, Any, Generator, List
 from logging_config import get_logger
+from models import constants
 from utils.langchain_callback_logger import MyCustomHandler
 from utils.model_utils import setup_chat_model
 from models.document import Document
 import time
 
-from models import constants
-from utils.dataflow_processing_utils import  extract_job_id
-from services.user_management_service import user_management_service
-
+from utils.status_update import StandardizedMessage, status_updater
 
 logger = get_logger(__name__)
 
@@ -28,29 +25,28 @@ def prepare_batch_inputs(documents: List[Document]) -> List[Dict[str, str]]:
     return [{"text": doc.page_content} for doc in documents]
 
 
-def process_messages(messages: List[str]) -> Generator[Dict[str, Any], None, None]:
+@status_updater(constants.Service.DATAFLOW_TYPE_processing_llm)
+def process_raw_data_with_llm_and_status(message: StandardizedMessage):
+    return process_raw_data_with_llm(message)
+
+
+def process_raw_data_with_llm(message: StandardizedMessage) -> Generator[List[Document], None, None]:
     """
     Processes a batch of documents, generating summaries for each and collecting the results.
 
     Args:
-        messages (List[str]): A list of JSON strings representing the documents to be processed.
+        documents (List[Document]): A list of Document objects to be processed.
 
     Yields:
-        Generator[Dict[str, Any], None, None]: A generator yielding a dictionary containing the processed documents.
+        Generator[List[Document], None, None]: A generator yielding a list of Document objects, each containing either the raw or processed document.
     """
     start_time = time.time()
-
+    job_id = message.job_id
     try:
-        handler = MyCustomHandler(logger)
-        documents = [Document.model_validate_json(doc_json) for doc_json in messages]
-        job_ids = set(extract_job_id(doc) for doc in messages)
-        for job_id in job_ids:
-            user_management_service.update_status(
-                constants.Service.COMMIT_SUMMARY,
-                job_id,
-                constants.StepStatus.IN_PROGRESS.value,
-            )
 
+        documents = [Document.model_validate_json(doc_json) for doc_json in message.data]
+        handler = MyCustomHandler(logger)
+        config = {"max_concurrency": 5, "callbacks": [handler]}
         if not documents:
             logger.warning("No valid documents to process.")
             return
@@ -60,37 +56,33 @@ def process_messages(messages: List[str]) -> Generator[Dict[str, Any], None, Non
 
         batch_inputs = prepare_batch_inputs(documents)
         chain = setup_chat_model()
-        batch_results = chain.batch(batch_inputs, config={"max_concurrency": 5, "callbacks": [handler]})
+        batch_results = chain.batch(batch_inputs, config=config)
+
+        combined_results = []
 
         for i, summary in enumerate(batch_results):
             document = documents[i]
-            metadata = document.metadata
+            combined_results.append(document)
+
+            metadata = document.metadata.copy()
             metadata["vector_id"] = f"{metadata['vector_id']}_llm"
             metadata["doc_type"] = "SUMMARY"
             updated_doc = Document(
                 page_content="Summary: " + summary,
                 metadata=metadata
             )
-            yield updated_doc.model_dump_json()
-
-    except (ValueError, orjson.JSONDecodeError) as e:
-        logger.error({"error": "Invalid document format", "details": str(e), "data": messages})
+            combined_results.append(updated_doc)
+        yield StandardizedMessage(
+            job_id=job_id,
+            step_number=message.step_number,
+            data=[doc.model_dump_json() for doc in combined_results],
+            metadata={**message.metadata, "document_count": len(batch_results)}
+        )
+    except ValueError as e:
+        logger.error({"error": "Invalid document format", "details": str(e), "data": message})
     except Exception as e:
-        for job_id in job_ids:
-            user_management_service.update_status(
-                constants.Service.COMMIT_SUMMARY,
-                job_id,
-                constants.StepStatus.FAILED.value,
-            )
-        logger.error({"error": "Failed to process messages", "details": str(e), "data": messages})
-    else:
-        for job_id in job_ids:
-            user_management_service.update_status(
-                constants.Service.COMMIT_SUMMARY,
-                job_id,
-                constants.StepStatus.COMPLETE.value,
-            )
+        logger.error({"error": "Failed to process messages", "details": str(e), "data": message})
     finally:
         end_time = time.time()
         total_time = end_time - start_time
-        logger.info(f"Total time to process {len(messages)} documents: {total_time:.2f} seconds")
+        logger.info(f"Total time to process documents: {total_time:.2f} seconds")

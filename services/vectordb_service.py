@@ -7,10 +7,9 @@ from config.config_setting import config
 from logging_config import get_logger
 from models import constants
 from models.document import Document
-from services.user_management_service import user_management_service
-from utils.dataflow_processing_utils import extract_job_id
 from utils.get_qdrant import get_qdrant_vector_store
 from utils.model_utils import setup_embedding_model
+from utils.status_update import StandardizedMessage, status_updater
 
 logging = get_logger(__name__)
 
@@ -28,8 +27,10 @@ def generate_uuid_from_string(val: str) -> uuid.UUID:
     logging.info(f"id produced {hex_string}")
     return uuid.UUID(hex=hex_string)
 
-
-def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any], None, None]:
+@status_updater(constants.Service.DATAFLOW_TYPE_DATASINK)
+def insert_into_vectordb_with_status(message: StandardizedMessage):
+    return process_message_to_vectordb(message)
+def process_message_to_vectordb(message:StandardizedMessage) -> Generator[Dict[str, Any], None, None]:
     """
     Processes a message containing documents and stores them in a vector database.
 
@@ -40,8 +41,7 @@ def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any],
         Generator[Dict[str, Any], None, None]: A generator yielding the result of the operation, including any errors.
     """
     try:
-        # First, parse each string in the message as JSON
-        parsed_docs = [json.loads(doc) for doc in message]
+        parsed_docs = [json.loads(doc) for doc in message.data]
 
         # Then, validate each parsed JSON object as a Document
         documents = [Document.model_validate(doc) for doc in parsed_docs]
@@ -53,15 +53,9 @@ def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any],
         logging.error(f"Failed to validate documents: {e} with message {message}")
         return
 
-    job_id = None
     try:
         collection_name = documents[0].metadata['collection_name']
         job_id = documents[0].metadata['job_id']
-        user_management_service.update_status(
-            constants.Service.QDRANT_SERVICE,
-            job_id,
-            constants.StepStatus.IN_PROGRESS.value,
-        )
         logging.info(f"Received request for {documents[0].metadata['collection_name']}")
         embed = setup_embedding_model()
         vectordb = get_qdrant_vector_store(host=config.VECTOR_DB_HOST, port=config.VECTOR_DB_PORT,
@@ -74,7 +68,7 @@ def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any],
         added_ids = vectordb.add_texts(texts=texts, metadatas=metadatas, ids=ids)
 
         logging.info(f"Processed {len(added_ids)} documents into vectordb collection")
-        for id, metadata in zip(added_ids, metadatas):
+        for id, metadata in zip(ids, metadatas):
             result_message = {
                 "collection_name": collection_name,
                 "vector_db_id": id,
@@ -82,17 +76,6 @@ def process_message_to_vectordb(message: List[str]) -> Generator[Dict[str, Any],
                 "document_type": metadata.get('doc_type', 'UNKNOWN')
             }
             yield result_message
-        user_management_service.update_status(
-            constants.Service.QDRANT_SERVICE,
-            job_id,
-            constants.StepStatus.COMPLETE.value,
-        )
     except Exception as e:
         logging.error(f"Failed to add documents to Qdrant: {e}")
-        if job_id:
-            user_management_service.update_status(
-                constants.Service.QDRANT_SERVICE,
-                job_id,
-                constants.StepStatus.FAILED.value,
-            )
 

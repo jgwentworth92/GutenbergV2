@@ -1,14 +1,16 @@
 import time
 from multiprocessing import Pool, cpu_count
-from typing import Dict, Any, Generator, Tuple
+from typing import Any, Generator, Tuple
+
 from github import Github, Auth
 from orjson import orjson
+
 from config.config_setting import config
 from logging_config import get_logger
 from models import constants
 from models.commit import CommitData, FileInfo
 from models.document import Document
-from services.user_management_service import user_management_service
+from utils.status_update import StandardizedMessage, status_updater
 
 logger = get_logger(__name__)
 
@@ -122,56 +124,65 @@ def create_documents(latest_files, all_commit_data, job_id):
     return documents
 
 
-
-def fetch_and_emit_commits(resource_data: Dict[str, Any]) -> Generator[str, None, None]:
+def fetch_and_emit_commits(message: StandardizedMessage) -> Generator[StandardizedMessage, None, None]:
     start_time = time.time()
-    repo_info = orjson.loads(resource_data["resource_data"])
-    job_id = resource_data["job_id"]
-    owner = repo_info["owner"]
-    repo_name = repo_info["repo_name"]
-    repo = fetch_repository(owner, repo_name)
-
-    if not repo:
-        user_management_service.update_status(
-            constants.Service.GITHUB_SERVICE,
-            job_id,
-            constants.StepStatus.FAILED.value,
-        )
-        logger.error(f"Failed to fetch repository {owner}/{repo_name}")
-        return
-
-    commit_options = {key: value for key, value in repo_info.items() if key not in ["owner", "repo_name"]}
+    job_id = message.job_id
 
     try:
+        # The resource_data is nested inside the 'data' field of the message
+        data = message.data
+        resource_data = data['resource_data']
+        if not resource_data:
+            logger.error(f"No resource_data found for job {message.data}")
+            return
+
+        # resource_data is a string, so we need to parse it
+        repo_info = orjson.loads(resource_data)
+        owner = repo_info.get("owner")
+        repo_name = repo_info.get("repo_name")
+        logger.info(f"repo {repo_name} with pased in {resource_data}")
+
+        if not owner or not repo_name:
+            logger.error(f"Missing owner or repo_name for job {job_id}")
+            return
+
+        repo = fetch_repository(owner, repo_name)
+
+        if not repo:
+            logger.error(f"Failed to fetch repository {owner}/{repo_name}")
+            return
+
+        commit_options = {key: value for key, value in repo_info.items() if key not in ["owner", "repo_name"]}
         commits = repo.get_commits(**commit_options)
         all_commit_data = fetch_all_commit_data(commits, repo_name)
         latest_files = get_latest_files(all_commit_data)
-        documents = create_documents(latest_files, all_commit_data,job_id)
+        documents = [doc.model_dump_json() for doc in create_documents(latest_files, all_commit_data, job_id)]
 
-        for document in documents:
-            yield document.model_dump_json()
-        logger.info(f"Processed combined commit data into {len(documents)} documents for repo {repo_name}")
-        user_management_service.update_status(
-            constants.Service.GITHUB_SERVICE,
-            job_id,
-            constants.StepStatus.COMPLETE.value,
-        )
-        logger.info(f"Updated the status to completed in github service")
-        
+        if documents:
+            yield StandardizedMessage(
+                job_id=job_id,
+                step_number=message.step_number,
+                data=documents,
+                metadata={**message.metadata, "repo_name": repo_name, "document_count": len(documents)}
+            )
+            logger.info(f"Processed combined commit data into {len(documents)} documents for repo {repo_name}")
+        else:
+            logger.warning(f"No documents created for job {job_id}")
 
     except Exception as e:
-        user_management_service.update_status(
-            constants.Service.GITHUB_SERVICE,
-            job_id,
-            constants.StepStatus.FAILED.value,
-        )
         logger.error({
             "error": "Failed to fetch commits",
             "details": str(e),
-            "repo": f"{owner}/{repo_name}"
+            "job_id": job_id
         })
+        # Don't yield anything on error
 
     finally:
         end_time = time.time()
         total_time = end_time - start_time
         logger.info(f"Total time to process commits: {total_time:.2f} seconds")
+
+
+@status_updater(constants.Service.DATAFLOW_TYPE_processing_raw)
+def fetch_and_emit_commits_with_status(message: StandardizedMessage):
+    return fetch_and_emit_commits(message)
