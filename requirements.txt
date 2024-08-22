@@ -18,3 +18,4 @@ SQLAlchemy==2.0.29
 psycopg2==2.9.9
 pymupdf
 tiktoken
+pre-commit

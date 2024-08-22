@@ -49,7 +49,7 @@ jobs:
           echo "BROKERS=0.0.0.0:9092" >> $GITHUB_ENV
 
       - name: 🧪 Run Intergration Tests
-        run: pytest tests/test_debezium.py
+        run: pytest tests/intergration_tests/test_debezium.py
       
       - name: Tear down Docker Compose
         if: always()

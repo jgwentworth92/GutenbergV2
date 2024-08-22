@@ -1,9 +1,5 @@
-import pytest
-from unittest.mock import patch, MagicMock
-from models.document import Document
-from services.vectordb_service import process_message_to_vectordb
-from utils.status_update import StandardizedMessage
 from logging_config import get_logger
+from services.vectordb_service import process_message_to_vectordb
 
 logger = get_logger(__name__)
 

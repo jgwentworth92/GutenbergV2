@@ -1,19 +1,22 @@
 from bytewax.dataflow import Dataflow
 import bytewax.operators as op
+from bytewax.connectors.kafka import operators as kop ,KafkaSource, KafkaSink, KafkaSinkMessage, KafkaSourceMessage
+from icecream import ic
+from config.config_setting import config
 import orjson
 from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage, KafkaSourceMessage
 from confluent_kafka import OFFSET_STORED
 from icecream import ic
-
 from config.config_setting import config
 from dataflows.github_commit_processing import serialize_standardized_message
 from logging_config import setup_logging, get_logger
-
 from services.message_processing_service import process_raw_data_with_llm_and_status
 from utils.dataflow_processing_utils import kafka_to_standardized
 from utils.status_update import StandardizedMessage
 
+
 setup_logging()
+logger = get_logger(__name__)
 # Application setup
 logger = get_logger(__name__)
 brokers = [config.BROKERS]
