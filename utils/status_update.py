@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import Callable, Generator, Union, List, Any, Dict, Iterable
+from typing import Callable, Generator, Union, List, Any, Dict, Iterable, Optional
 
 from pydantic import BaseModel, Field
 
@@ -26,7 +26,7 @@ class StandardizedMessage(BaseModel):
     step_number: int
     data: Union[Dict[str, Any], List[Any], str, List[Document]] = Field(default_factory=dict)
     metadata: Dict[str, Any] = Field(default_factory=dict)
-
+    prompt: Optional[str] = None
 
 def update_status(job_id: str, service: constants.Service, status: constants.StepStatus):
     """
@@ -38,7 +38,10 @@ def update_status(job_id: str, service: constants.Service, status: constants.Ste
         status (constants.StepStatus): The new status of the job.
     """
     logger.info(f"Updating status for job {job_id}: service={service.value}, status={status.value}")
-    user_management_service.update_status(job_id, service.value, status.value)
+    try:
+        user_management_service.update_status(job_id, service.value, status.value)
+    except Exception as e:
+        logger.error(f"Error processing job {job_id}: {str(e)}")
 
 
 def status_updater(service: constants.Service):
@@ -67,9 +70,10 @@ def status_updater(service: constants.Service):
         def wrapper(message: StandardizedMessage) -> Iterable[Union[StandardizedMessage, None]]:
             job_id = message.job_id
 
-            update_status(job_id, service, constants.StepStatus.IN_PROGRESS)
-
             try:
+
+                update_status(job_id, service, constants.StepStatus.IN_PROGRESS)
+
                 result = func(message)
 
                 if isinstance(result, Generator) or (
