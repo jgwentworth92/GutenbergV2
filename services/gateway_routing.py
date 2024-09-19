@@ -15,6 +15,7 @@ RESOURCE_TOPIC_MAPPING = {"github": config.GITHUB_TOPIC, "pdf": config.PDF_INPUT
 def kafka_to_standardized(msg: KafkaSourceMessage) -> StandardizedMessage:
     data = orjson.loads(msg.value)
     row = data["payload"]["after"]
+
     return StandardizedMessage(
         job_id=row["job_id"],
         step_number=1,
