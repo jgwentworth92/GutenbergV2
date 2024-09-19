@@ -129,18 +129,17 @@ def fetch_and_emit_commits(message: StandardizedMessage) -> Generator[Standardiz
     job_id = message.job_id
 
     try:
-        # The resource_data is nested inside the 'data' field of the message
         data = message.data
         resource_data = data['resource_data']
         if not resource_data:
             logger.error(f"No resource_data found for job {message.data}")
             return
 
-        # resource_data is a string, so we need to parse it
         repo_info = orjson.loads(resource_data)
         owner = repo_info.get("owner")
         repo_name = repo_info.get("repo_name")
-        logger.info(f"repo {repo_name} with pased in {resource_data}")
+        prompt = repo_info.get("prompt")  # Extract prompt if provided
+        logger.info(f"repo {repo_name} with parsed in {resource_data}")
 
         if not owner or not repo_name:
             logger.error(f"Missing owner or repo_name for job {job_id}")
@@ -152,7 +151,7 @@ def fetch_and_emit_commits(message: StandardizedMessage) -> Generator[Standardiz
             logger.error(f"Failed to fetch repository {owner}/{repo_name}")
             return
 
-        commit_options = {key: value for key, value in repo_info.items() if key not in ["owner", "repo_name"]}
+        commit_options = {key: value for key, value in repo_info.items() if key not in ["owner", "repo_name", "prompt"]}
         commits = repo.get_commits(**commit_options)
         all_commit_data = fetch_all_commit_data(commits, repo_name)
         latest_files = get_latest_files(all_commit_data)
@@ -163,7 +162,8 @@ def fetch_and_emit_commits(message: StandardizedMessage) -> Generator[Standardiz
                 job_id=job_id,
                 step_number=message.step_number,
                 data=documents,
-                metadata={**message.metadata, "repo_name": repo_name, "document_count": len(documents)}
+                metadata={**message.metadata, "repo_name": repo_name, "document_count": len(documents)},
+                prompt=prompt  # Include the prompt in the yielded message
             )
             logger.info(f"Processed combined commit data into {len(documents)} documents for repo {repo_name}")
         else:
@@ -175,7 +175,6 @@ def fetch_and_emit_commits(message: StandardizedMessage) -> Generator[Standardiz
             "details": str(e),
             "job_id": job_id
         })
-        # Don't yield anything on error
 
     finally:
         end_time = time.time()
