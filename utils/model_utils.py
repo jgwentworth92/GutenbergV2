@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from langchain.chains.base import Chain
 from langchain_core.embeddings import FakeEmbeddings
@@ -19,7 +19,8 @@ def get_fake_chat_model():
     chat_model = FakeMessagesListChatModel(responses=fake_responses)
     return chat_model
 
-def setup_chat_model():
+
+def setup_chat_model(custom_prompt: Optional[str] = None):
     if config.MODEL_PROVIDER == 'openai':
         model_setup_function = get_openai_chat_model
     elif config.MODEL_PROVIDER == 'fake':
@@ -28,8 +29,13 @@ def setup_chat_model():
         model_setup_function = get_lmstudio_model
     else:
         raise ValueError(f"Unsupported chat model provider: {config.MODEL_PROVIDER}")
+
     chat_model = model_setup_function()
-    prompt = ChatPromptTemplate.from_template(config.TEMPLATE)
+
+    # Use the custom prompt if provided, otherwise use the default from config
+    prompt_template = custom_prompt if custom_prompt else config.TEMPLATE
+    prompt = ChatPromptTemplate.from_template(prompt_template)
+
     return prompt | chat_model | StrOutputParser()
 def get_openai_embedding_model():
     return OpenAIEmbeddings(openai_api_key=config.OPENAI_API_KEY)

@@ -31,19 +31,9 @@ def process_raw_data_with_llm_and_status(message: StandardizedMessage):
 
 
 def process_raw_data_with_llm(message: StandardizedMessage) -> Generator[List[Document], None, None]:
-    """
-    Processes a batch of documents, generating summaries for each and collecting the results.
-
-    Args:
-        documents (List[Document]): A list of Document objects to be processed.
-
-    Yields:
-        Generator[List[Document], None, None]: A generator yielding a list of Document objects, each containing either the raw or processed document.
-    """
     start_time = time.time()
     job_id = message.job_id
     try:
-
         documents = [Document.model_validate_json(doc_json) for doc_json in message.data]
         handler = MyCustomHandler(logger)
         config = {"max_concurrency": 5, "callbacks": [handler]}
@@ -55,7 +45,10 @@ def process_raw_data_with_llm(message: StandardizedMessage) -> Generator[List[Do
         logger.info(f"First document metadata: {documents[0].metadata}")
 
         batch_inputs = prepare_batch_inputs(documents)
-        chain = setup_chat_model()
+
+        # Use the prompt from the message if available, otherwise use None
+        chain = setup_chat_model(custom_prompt=message.prompt)
+
         batch_results = chain.batch(batch_inputs, config=config)
 
         combined_results = []
@@ -72,11 +65,13 @@ def process_raw_data_with_llm(message: StandardizedMessage) -> Generator[List[Do
                 metadata=metadata
             )
             combined_results.append(updated_doc)
+
         yield StandardizedMessage(
             job_id=job_id,
             step_number=message.step_number,
             data=[doc.model_dump_json() for doc in combined_results],
             metadata={**message.metadata, "document_count": len(batch_results)}
+            # Note: We don't include the prompt here as it's not needed in the output
         )
     except ValueError as e:
         logger.error({"error": "Invalid document format", "details": str(e), "data": message})
