@@ -193,19 +193,33 @@ def standard_message_factory():
             job_id=job_id,
             step_number=step_number,
             data=data,
-            metadata=metadata or {}
+            metadata=metadata or {},
+            llm_model="fake",  # Ensure an LLM model is provided
+            prompt="Summarize the document"  # Provide a prompt
+
         )
     return _create_message
 @pytest.fixture
 def sample_pdf_input():
-    return {
-        "id": "3dc6752c-b27a-4243-8fe2-810bf482313b",
-        "job_id": "02ccd381-76e7-47ee-9346-b69df29cc640",
-        "resource_type": "pdf",
-        "resource_data": "{\"pdf_url\": \"https://unec.edu.az/application/uploads/2014/12/pdf-sample.pdf\", \"collection_name\": \"pdftest\"}",
-        "created_at": "2024-06-19T23:33:49.763648Z",
-        "updated_at": "2024-06-19T23:33:49.763648Z"
-    }
+    # Fixture for the correct sample PDF input data
+    return StandardizedMessage(
+        job_id="83a47a96-8144-42ed-815a-6409fad83a40",
+        step_number=1,
+        data={
+            "id": "65f77dc5-1283-49d6-9424-22bc547dd473",
+            "job_id": "83a47a96-8144-42ed-815a-6409fad83a40",
+            "resource_type": "pdf",
+            "resource_data": "{\"pdf_url\": \"https://arxiv.org/pdf/2409.13794\", \"collection_name\": \"test\", \"prompt\": \"test\", \"llm_model\": \"openai\"}",
+            "created_at": "2024-09-30T17:17:28.231396Z",
+            "updated_at": "2024-09-30T17:17:28.231396Z"
+        },
+        metadata={
+            "original_topic": "resource_topic"
+        },
+        prompt=None,
+        llm_model=None
+    )
+
 
 @pytest.fixture
 def mock_kafka_source_message():

@@ -1,5 +1,7 @@
 from uuid import UUID
 import requests
+from requests import RequestException
+
 from config.config_setting import config
 from models.constants import Service, StepStatus, STEP_TYPE_MAPPING
 from logging_config import get_logger
@@ -11,6 +13,7 @@ class UserManagementClient:
     def __init__(self):
         self.base_url = config.USER_MANAGEMENT_SERVICE_URL
         self.session = requests.Session()
+
 
     def update_status(self, job_id: UUID, step_type: str, status: StepStatus, extra_data: dict = None):
         """
@@ -28,13 +31,17 @@ class UserManagementClient:
         if extra_data:
             data.update(extra_data)
 
-        response = self.session.put(
-            f"{self.base_url}/jobs/{job_id}/steps/{step_type}",
-            json=data
-        )
-        response.raise_for_status()
-        logger.info(f"Step updated successfully for job: {job_id}, step type: {step_type}")
-        return response.json()
+        try:
+            response = self.session.put(
+                f"{self.base_url}/jobs/{job_id}/steps/{step_type}",
+                json=data
+            )
+            response.raise_for_status()
+            logger.info(f"Step updated successfully for job: {job_id}, step type: {step_type}")
+            return response.json()
+        except RequestException as e:
+            logger.error(f"Error updating step for job: {job_id}, step type: {step_type}. Error: {str(e)}")
+            raise
 
     def get_job_status(self, job_id: UUID):
         logger.info(f"Getting status for job: {job_id}")

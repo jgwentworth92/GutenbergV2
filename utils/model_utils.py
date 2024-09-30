@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from langchain.chains.base import Chain
 from langchain_core.embeddings import FakeEmbeddings
@@ -11,7 +11,7 @@ from config.config_setting import config
 from icecream import ic
 
 def get_openai_chat_model():
-    chat_model = ChatOpenAI(temperature=0, openai_api_key=config.OPENAI_API_KEY, model="gpt-3.5-turbo")
+    chat_model = ChatOpenAI(temperature=.8, openai_api_key=config.OPENAI_API_KEY, model="gpt-4o")
     return chat_model
 
 def get_fake_chat_model():
@@ -19,17 +19,23 @@ def get_fake_chat_model():
     chat_model = FakeMessagesListChatModel(responses=fake_responses)
     return chat_model
 
-def setup_chat_model():
-    if config.MODEL_PROVIDER == 'openai':
+
+def setup_chat_model(custom_prompt: Optional[str] = None,llm_model:Optional[str] = 'fake'):
+    if llm_model == 'openai':
         model_setup_function = get_openai_chat_model
-    elif config.MODEL_PROVIDER == 'fake':
+    elif llm_model == 'fake':
         model_setup_function = get_fake_chat_model
-    elif config.MODEL_PROVIDER == 'lmstudio':
+    elif llm_model == 'lmstudio':
         model_setup_function = get_lmstudio_model
     else:
-        raise ValueError(f"Unsupported chat model provider: {config.MODEL_PROVIDER}")
+        raise ValueError(f"Unsupported chat model provider: {llm_model}")
+
     chat_model = model_setup_function()
-    prompt = ChatPromptTemplate.from_template(config.TEMPLATE)
+
+    # Use the custom prompt if provided, otherwise use the default from config
+    prompt_template = custom_prompt+" {text}" if custom_prompt else config.TEMPLATE
+    prompt = ChatPromptTemplate.from_template(prompt_template)
+
     return prompt | chat_model | StrOutputParser()
 def get_openai_embedding_model():
     return OpenAIEmbeddings(openai_api_key=config.OPENAI_API_KEY)
@@ -41,12 +47,12 @@ def get_lmstudio_model():
 def get_fake_embedding_model():
     return FakeEmbeddings(size=1536)
 
-def setup_embedding_model():
-    if config.MODEL_PROVIDER == 'openai':
+def setup_embedding_model(llm_model:Optional[str] = 'fake'):
+    if llm_model == 'openai':
         model_setup_function = get_openai_embedding_model
-    elif config.MODEL_PROVIDER == 'fake':
+    elif llm_model == 'fake':
         model_setup_function = get_fake_embedding_model
-    elif config.MODEL_PROVIDER == 'lmstudio':
+    elif llm_model == 'lmstudio':
         model_setup_function = get_openai_embedding_model
     else:
         raise ValueError(f"Unsupported embedding model provider: {config.EMBEDDING_MODEL_PROVIDER}")

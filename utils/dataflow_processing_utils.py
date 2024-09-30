@@ -9,13 +9,24 @@ logger = get_logger(__name__)
 
 def kafka_to_standardized(msg: KafkaSourceMessage) -> StandardizedMessage:
     data = orjson.loads(msg.value)
-    return StandardizedMessage(
-        job_id=data["job_id"],
-        step_number=data['step_number']+1,
-        data=data["data"],
-        metadata={"original_topic": msg.topic}
-    )
+    payload = data["data"]
 
+    # Create the base parameters for the StandardizedMessage object
+    kwargs = {
+        "job_id": data["job_id"],
+        "step_number": data["step_number"] + 1,
+        "data": payload,
+        "metadata": {"original_topic": msg.topic}
+    }
+
+    # Add 'prompt' and 'llm_model' to kwargs if they are present in data
+    if "prompt" in data:
+        kwargs["prompt"] = data["prompt"]
+    if "llm_model" in data:
+        kwargs["llm_model"] = data["llm_model"]
+
+    # Return the StandardizedMessage object with the dynamically updated fields
+    return StandardizedMessage(**kwargs)
 
 
 def prepare_payload(items) -> list:

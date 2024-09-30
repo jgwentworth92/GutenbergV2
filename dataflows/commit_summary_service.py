@@ -44,8 +44,13 @@ standardized_messages = op.map(
 )
 
 llm_processed_messages = op.flat_map("process_with_llm", standardized_messages, process_raw_data_with_llm_and_status)
+filtered_commits = op.filter(
+    "filter_empty_messages",
+    llm_processed_messages,
+    lambda msg: msg is not None and bool(msg)
+)
 
-serialized_llm_docs = op.map("serialize_llm_documents", llm_processed_messages, serialize_standardized_message)
+serialized_llm_docs = op.map("serialize_llm_documents", filtered_commits , serialize_standardized_message)
 
 kafka_messages = op.map("create_kafka_messages", serialized_llm_docs, lambda x: KafkaSinkMessage(None, x))
 

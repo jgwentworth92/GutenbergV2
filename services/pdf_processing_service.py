@@ -1,65 +1,72 @@
-import time
-from typing import Dict, Any, Generator, List
+from typing import Generator
 from langchain_community.document_loaders.pdf import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from orjson import orjson
 from logging_config import get_logger
 from models.document import Document
+from utils.status_update import StandardizedMessage, status_updater
+from models import constants
 
 logger = get_logger(__name__)
-
-def process_pdf(messages: Dict[str, Any]) -> Generator[Dict[str, Any], None, None]:
+@status_updater(constants.Service.DATAFLOW_TYPE_processing_raw)
+def process_pdf_with_status(message: StandardizedMessage) -> Generator[StandardizedMessage, None, None]:
+    yield process_pdf(message)
+def process_pdf(message: StandardizedMessage) -> Generator[StandardizedMessage, None, None]:
     """
-    Processes a batch of documents, generating summaries for each and collecting the results.
+    Processes a PDF document, generating chunks for each page.
 
     Args:
-        messages (List[str]): A list of JSON strings representing the documents to be processed.
+        message (StandardizedMessage): A standardized message containing the PDF processing information.
 
     Yields:
-        Generator[Dict[str, Any], None, None]: A generator yielding a dictionary containing the processed documents.
+        Generator[StandardizedMessage, None, None]: A generator yielding StandardizedMessage objects containing the processed documents.
     """
-    start_time = time.time()
-
     try:
-        data=orjson.loads(messages["resource_data"])
-        job_id=messages["job_id"]
-        pdf_url = data["pdf_url"]
-        collection = data["collection_name"]
+        resource_data = orjson.loads(message.data["resource_data"])
+        job_id = message.job_id
+        pdf_url = resource_data["pdf_url"]
+        collection = resource_data["collection_name"]
+        prompt = resource_data.get("prompt")
+        llm_model = resource_data.get("llm_model")
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=500,
             chunk_overlap=20,
             length_function=len,
-            is_separator_regex=False,
+            is_separator_regex=False
         )
         loader = PyMuPDFLoader(pdf_url)
         docs = loader.load()
 
-        final_output = []
-        page_number = 1
         texts = text_splitter.split_documents(docs)
-        for doc in texts:
-            page_number += 1
+        processed_docs = []
 
+        for i, doc in enumerate(texts):
             extra_metadata = {
                 "collection_name": collection,
                 "job_id": job_id,
-                "doc_type":"raw",
-                "vector_id": f"{pdf_url} page {str(doc.metadata['page'])} for chunk {str(page_number)}"
+                "doc_type": "raw",
+                "vector_id": f"{pdf_url} page {str(doc.metadata['page'])} for chunk {str(i + 1)}"
             }
             combined_metadata = {**doc.metadata, **extra_metadata}
-            doc_document = Document(page_content=doc.page_content, metadata=combined_metadata)
-            yield doc_document.model_dump_json()
+            processed_doc = Document(page_content=doc.page_content, metadata=combined_metadata)
+            processed_docs.append(processed_doc.model_dump_json())
 
+        if processed_docs:
+            yield StandardizedMessage(
+                job_id=job_id,
+                step_number=message.step_number,
+                data=processed_docs,
+                metadata={**message.metadata, "pdf_url": pdf_url, "document_count": len(processed_docs)},
+                prompt=prompt,
+                llm_model=llm_model
+
+            )
+            logger.info(f"Processed PDF into {len(processed_docs)} documents for job {job_id}")
+        else:
+            logger.warning(f"No documents created for job {job_id}")
 
     except Exception as e:
-        error_message = {
-            "error": "Failed to process messages",
+        logger.error({
+            "error": "Failed to process PDF",
             "details": str(e),
-            "data": messages
-        }
-        logger.error(error_message)
-        return
-    finally:
-        end_time = time.time()
-        total_time = end_time - start_time
-        logger.info(f"Total time to process documents: {total_time:.2f} seconds")
+        })

@@ -52,7 +52,15 @@ def serialize_standardized_message(msg: StandardizedMessage):
     return msg.model_dump_json()
 
 
-serialized_docs = op.map("serialize_documents", processed_commits, serialize_standardized_message)
+filtered_commits = op.filter(
+    "filter_empty_messages",
+    processed_commits,
+    lambda msg: msg is not None and bool(msg)
+)
+
+
+serialized_docs = op.map("serialize_documents", filtered_commits, serialize_standardized_message)
+
 
 kafka_messages = op.map("create_kafka_messages", serialized_docs, lambda x: KafkaSinkMessage(None, x))
 
