@@ -27,12 +27,12 @@ def process_pdf(message: StandardizedMessage) -> Generator[StandardizedMessage, 
         pdf_url = resource_data["pdf_url"]
         collection = resource_data["collection_name"]
         prompt = resource_data.get("prompt")
-
+        llm_model = resource_data.get("llm_model")
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=500,
             chunk_overlap=20,
             length_function=len,
-            is_separator_regex=False,
+            is_separator_regex=False
         )
         loader = PyMuPDFLoader(pdf_url)
         docs = loader.load()
@@ -57,7 +57,9 @@ def process_pdf(message: StandardizedMessage) -> Generator[StandardizedMessage, 
                 step_number=message.step_number,
                 data=processed_docs,
                 metadata={**message.metadata, "pdf_url": pdf_url, "document_count": len(processed_docs)},
-                prompt=prompt
+                prompt=prompt,
+                llm_model=llm_model
+
             )
             logger.info(f"Processed PDF into {len(processed_docs)} documents for job {job_id}")
         else:

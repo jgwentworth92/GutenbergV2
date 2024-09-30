@@ -45,9 +45,9 @@ def process_raw_data_with_llm(message: StandardizedMessage) -> Generator[List[Do
         logger.info(f"First document metadata: {documents[0].metadata}")
 
         batch_inputs = prepare_batch_inputs(documents)
-
+        logger.info(f"the passed in model is {message.llm_model} with prompt{message.prompt}")
         # Use the prompt from the message if available, otherwise use None
-        chain = setup_chat_model(custom_prompt=message.prompt)
+        chain = setup_chat_model(custom_prompt=message.prompt,llm_model=message.llm_model)
 
         batch_results = chain.batch(batch_inputs, config=config)
 

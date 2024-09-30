@@ -27,6 +27,7 @@ class StandardizedMessage(BaseModel):
     data: Union[Dict[str, Any], List[Any], str, List[Document]] = Field(default_factory=dict)
     metadata: Dict[str, Any] = Field(default_factory=dict)
     prompt: Optional[str] = None
+    llm_model: Optional[str] = None
 
 def update_status(job_id: str, service: constants.Service, status: constants.StepStatus):
     """
