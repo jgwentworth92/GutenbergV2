@@ -193,7 +193,10 @@ def standard_message_factory():
             job_id=job_id,
             step_number=step_number,
             data=data,
-            metadata=metadata or {}
+            metadata=metadata or {},
+            llm_model="fake",  # Ensure an LLM model is provided
+            prompt="Summarize the document"  # Provide a prompt
+
         )
     return _create_message
 @pytest.fixture
