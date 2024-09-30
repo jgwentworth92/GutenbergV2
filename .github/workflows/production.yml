@@ -1,0 +1,92 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+env:
+    USERNAME: ${{ secrets.DOCKERHUB_USERNAME}}
+    PASSWORD: ${{ secrets.DOCKERHUB_TOKEN}}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      qdrant:
+        image: qdrant/qdrant
+        ports:
+          - "6333:6333"
+          - "6334:6334"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Kafka KRaft Broker
+        uses: spicyparrot/kafka-kraft-action@v1.1.0
+        with:
+          kafka-version: "3.7.0"
+          kafka-topics: "github_topic,1,github-commits-out,1,addtovectordb,1,QdrantOutput,1,pdfInput,1,resource_topic,1"
+
+      - name: Set environment variables
+        run: |
+          echo "GITHUB_TOKEN=${{ secrets.TOKEN_GITHUB }}" >> $GITHUB_ENV
+          echo "BROKERS=${{ env.kafka_runner_address }}:9093" >> $GITHUB_ENV
+          echo "INPUT_TOPIC=repos-topic" >> $GITHUB_ENV
+          echo "OUTPUT_TOPIC=github-commits-out" >> $GITHUB_ENV
+          echo "CONSUMER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\",\"group.id\": \"your_unique_group_id\",\"auto.offset.reset\": \"latest\",\"enable.auto.commit\": \"true\"}" >> $GITHUB_ENV
+          echo "PRODUCER_CONFIG={\"bootstrap.servers\": \"${{ env.kafka_runner_address }}:9093\"}" >> $GITHUB_ENV
+          echo "PROCESSED_TOPIC=addtovectordb" >> $GITHUB_ENV
+          echo "VECTORDB_TOPIC_NAME="QdrantOutput"" >> $GITHUB_ENV
+          echo "MODEL_PROVIDER=fake" >> $GITHUB_ENV
+          echo "OPENAI_API_KEY=sk-fakekeyapikey" >> $GITHUB_ENV
+          echo "TEMPLATE=${{ secrets.TEMPLATE }}" >> $GITHUB_ENV
+          echo "VECTOR_DB_HOST=localhost" >> $GITHUB_ENV
+          echo "LOCAL_LLM_URL=localhost" >> $GITHUB_ENV
+          echo "PDF_INPUT=pdfInput" >> $GITHUB_ENV
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🧪 Run Intergration Tests
+        run: pytest tests/intergration_tests
+
+  build-and-push-docker:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.USERNAME }}
+          password: ${{ env.PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: jgcapworh92/gutenberg-dataflow:latest # Uses the branch name for tagging
+          platforms: linux/amd64,linux/arm64 # Multi-platform support
+          cache-from: type=registry,ref=jgcapworh92/gutenberg-dataflow:cache
+          cache-to: type=inline,mode=max
+      - name: Scan the Docker image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'jgcapworh92/gutenberg-dataflow:latest'
+          format: 'table'
+          exit-code: '1' # Fail the job if vulnerabilities are found
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'

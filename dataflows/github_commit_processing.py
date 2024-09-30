@@ -1,46 +1,69 @@
-from bytewax.dataflow import Dataflow
 import bytewax.operators as op
-from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage
-from confluent_kafka import OFFSET_END
+import orjson
+from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage, KafkaSourceMessage
+from bytewax.dataflow import Dataflow
+from confluent_kafka import OFFSET_STORED
 from icecream import ic
 
 from config.config_setting import config
-from services.github_service import fetch_and_emit_commits
-from utils.kafka_utils import inspect_output_topic
-import orjson
+from logging_config import setup_logging, get_logger
+from models import constants
+from services.github_service import fetch_and_emit_commits, fetch_and_emit_commits_with_status
+from utils.dataflow_processing_utils import kafka_to_standardized
+from utils.status_update import status_updater, StandardizedMessage
+
+setup_logging()
+logger = get_logger(__name__)
 
 # Application setup
 brokers = [config.BROKERS]
-input_topic = config.INPUT_TOPIC
+input_topic = config.GITHUB_TOPIC
 output_topic = config.OUTPUT_TOPIC
 consumer_config = config.CONSUMER_CONFIG
 producer_config = config.PRODUCER_CONFIG
-from confluent_kafka import OFFSET_STORED
 
 # Bytewax dataflow setup
 flow = Dataflow("github_commit_processing")
 ic(f"the stored offset is {OFFSET_STORED}")
+
 # Input from Kafka topic
 kafka_input = op.input("kafka-in", flow,
-                       KafkaSource(brokers=brokers,  topics=[input_topic],
-                                   add_config=consumer_config))
+                       KafkaSource(brokers=brokers, topics=[input_topic],
+                                   add_config=producer_config))
 
-# Fetch and emit each commit individually
-processed_commits = op.flat_map("fetch_and_emit_commits", kafka_input,
-                                lambda msg: fetch_and_emit_commits(orjson.loads(msg.value)))
 
-# Serialize each commit data
-serialized_commits = op.map("serialize_commits", processed_commits, orjson.dumps)
 
-# Create KafkaSinkMessages for each serialized commit data
-kafka_messages = op.map("create_kafka_messages", serialized_commits, lambda x: KafkaSinkMessage(None, x))
+
+standardized_messages = op.map(
+    "kafka_to_standardized",
+    kafka_input,
+    kafka_to_standardized,
+)
+
+
+processed_commits = op.flat_map(
+    "fetch_and_emit_commits_with_status",
+    standardized_messages,
+    fetch_and_emit_commits_with_status
+)
+
+
+def serialize_standardized_message(msg: StandardizedMessage):
+    return msg.model_dump_json()
+
+
+filtered_commits = op.filter(
+    "filter_empty_messages",
+    processed_commits,
+    lambda msg: msg is not None and bool(msg)
+)
+
+
+serialized_docs = op.map("serialize_documents", filtered_commits, serialize_standardized_message)
+
+
+kafka_messages = op.map("create_kafka_messages", serialized_docs, lambda x: KafkaSinkMessage(None, x))
 
 # Output serialized data to Kafka
-op.output("kafka-output", kafka_messages, KafkaSink(brokers=brokers, topic=output_topic, add_config=producer_config,))
-
-# Input from Kafka, deserialize each message
-kafka_output_input = op.input("kafka-output-input", flow,
-                              KafkaSource(brokers=brokers,  topics=[output_topic],
-                                          add_config=consumer_config))
-
-# Inspect the output topic messages
+op.output("kafka-vector-raw-add", kafka_messages,
+          KafkaSink(brokers=brokers, topic=output_topic, add_config=producer_config))
