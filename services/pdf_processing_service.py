@@ -8,9 +8,9 @@ from utils.status_update import StandardizedMessage, status_updater
 from models import constants
 
 logger = get_logger(__name__)
-
-
 @status_updater(constants.Service.DATAFLOW_TYPE_processing_raw)
+def process_pdf_with_status(message: StandardizedMessage) -> Generator[StandardizedMessage, None, None]:
+    yield process_pdf(message)
 def process_pdf(message: StandardizedMessage) -> Generator[StandardizedMessage, None, None]:
     """
     Processes a PDF document, generating chunks for each page.

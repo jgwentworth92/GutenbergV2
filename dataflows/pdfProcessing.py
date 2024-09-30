@@ -5,7 +5,7 @@ from bytewax.connectors.kafka import KafkaSource, KafkaSink, KafkaSinkMessage
 from bytewax.dataflow import Dataflow
 from config.config_setting import config
 from logging_config import setup_logging, get_logger
-from services.pdf_processing_service import process_pdf
+from services.pdf_processing_service import process_pdf, process_pdf_with_status
 from utils.dataflow_processing_utils import kafka_to_standardized
 from utils.status_update import StandardizedMessage
 
@@ -35,7 +35,7 @@ standardized_messages = op.map(
 )
 
 # Process PDF and emit each document individually
-processed_docs = op.flat_map("pdf processing", standardized_messages, process_pdf)
+processed_docs = op.flat_map("pdf processing", standardized_messages, process_pdf_with_status)
 
 # Filter out any None or empty messages
 filtered_docs = op.filter(
